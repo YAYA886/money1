@@ -1,150 +1,321 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>安全單機記帳本</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; background-color: #f5f5f7; color: #1d1d1f; }
-        .container { max-width: 400px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { text-align: center; margin-bottom: 20px; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
-        button { background-color: #0071e3; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .btn-backup { background-color: #34c759; margin-top: 15px; }
-        .btn-import { background-color: #8e8e93; }
-        .record-list { margin-top: 20px; max-height: 250px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 10px; }
-        .record-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f5f5f7; }
-        .file-input { display: none; }
+        :root {
+            --primary-color: #0071e3;
+            --bg-color: #f5f5f7;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --danger-color: #ff3b30;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 16px; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 450px; background: var(--card-color); border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); padding: 20px; min-height: 90vh; display: flex; flex-direction: column; }
+        h2 { text-align: center; margin-bottom: 20px; font-size: 20px; font-weight: 600; }
+        
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 14px; color: #666; margin-bottom: 6px; font-weight: 500; }
+        input, select, .category-trigger { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 12px; font-size: 16px; background: #fafafa; outline: none; transition: 0.2s; }
+        input:focus { border-color: var(--primary-color); background: #fff; }
+        
+        .category-trigger { background: #fff; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .category-trigger::after { content: "▼"; font-size: 12px; color: #999; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        button { flex: 1; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-main { background-color: var(--primary-color); color: white; }
+        .btn-main:active { opacity: 0.8; }
+        .btn-sub { background-color: #e5e5e5; color: #333; font-size: 14px; padding: 8px; }
+
+        .history-section { margin-top: 24px; flex: 1; }
+        .history-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #444; }
+        .record-item { background: #f9f9f9; padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--primary-color); }
+        .record-info { display: flex; flex-direction: column; gap: 4px; }
+        .record-date { font-size: 12px; color: #888; }
+        .record-cate { font-size: 15px; font-weight: 500; }
+        .record-note { font-size: 13px; color: #666; }
+        .record-right { display: flex; align-items: center; gap: 12px; }
+        .record-amount { font-size: 16px; font-weight: 700; color: #222; }
+        .btn-delete { background: none; border: none; color: var(--danger-color); font-size: 14px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+        .btn-delete:hover { background: #ffebeb; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 20px; max-height: 80vh; display: flex; flex-direction: column; }
+        .modal-header { font-size: 18px; font-weight: 600; text-align: center; margin-bottom: 15px; }
+        .modal-body { display: flex; gap: 15px; overflow: hidden; flex: 1; }
+        .main-cate-list, .sub-cate-list { flex: 1; overflow-y: auto; list-style: none; border: 1px solid #eee; border-radius: 10px; }
+        .cate-item { padding: 12px; text-align: center; cursor: pointer; border-bottom: 1px solid #f5f5f5; font-size: 15px; }
+        .cate-item:last-child { border-bottom: none; }
+        .main-cate-list .cate-item.active { background: #e3f2fd; color: var(--primary-color); font-weight: 600; }
+        .sub-cate-list .cate-item:active { background: #f5f5f5; }
+        .modal-footer { margin-top: 15px; text-align: right; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>安全單機記帳本 (資料庫測試)</h2>
-        <input type="number" id="amount" placeholder="輸入金額" pattern="[0-9]*" inputmode="numeric">
-        <select id="category">
-            <option value="餐飲">餐飲</option>
-            <option value="交通">交通</option>
-            <option value="娛樂">娛樂</option>
-            <option value="生活">生活</option>
-        </select>
-        <button onclick="addRecord()">測試：新增紀錄</button>
 
-        <div class="record-list" id="recordList"></div>
+<div class="app-container">
+    <h2>安全單機記帳本</h2>
 
-        <!-- 備份安全防線 -->
-        <button class="btn-backup" onclick="exportToCSV()">測試：匯出 CSV 備份</button>
-        <button class="btn-import" onclick="document.getElementById('importFile').click()">測試：匯入備份</button>
-        <input type="file" id="importFile" class="file-input" accept=".csv" onchange="importFromCSV(this)">
+    <div class="form-group">
+        <label>選擇日期</label>
+        <input type="date" id="dateInput">
     </div>
 
-    <script>
-        let db;
-        // 1. 初始化 IndexedDB 安全資料庫
-        const request = indexedDB.open("MoneyDB", 1);
+    <div class="form-group">
+        <label>輸入金額</label>
+        <input type="number" id="amountInput" placeholder="$ 0" inputmode="numeric">
+    </div>
+
+    <div class="form-group">
+        <label>選擇分類 (主分類 > 子分類)</label>
+        <div class="category-trigger" id="cateTrigger" onclick="openModal()">點擊選擇分類</div>
+    </div>
+
+    <div class="form-group">
+        <label>備註說明</label>
+        <input type="text" id="noteInput" placeholder="請輸入備註（選填）">
+    </div>
+
+    <button class="btn-main" onclick="addRecord()">儲存紀錄</button>
+    <div class="btn-group">
+        <button class="btn-sub" onclick="exportCSV()">匯出 CSV 備份</button>
+        <button class="btn-sub" onclick="importCSV()">匯入備份</button>
+    </div>
+
+    <div class="history-section">
+        <div class="history-title">歷史明細</div>
+        <div id="recordList"></div>
+    </div>
+</div>
+
+<div class="modal" id="cateModal">
+    <div class="modal-content">
+        <div class="modal-header">選擇分類</div>
+        <div class="modal-body">
+            <ul class="main-cate-list" id="mainCateList"></ul>
+            <ul class="sub-cate-list" id="subCateList"></ul>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-sub" style="width: auto; padding: 6px 16px;" onclick="closeModal()">取消</button>
+        </div>
+    </div>
+</div>
+<script>
+    const categoryData = {
+        "飲食": ["早餐", "午餐", "晚餐", "宵夜", "食材", "零食&點心", "飲料", "水果", "咖啡", "酒"],
+        "住家": ["房租", "水費", "電費", "瓦斯費", "管理費", "修繕", "家居用品"],
+        "電信": ["手機費", "網路費", "第四台", "串流影音"],
+        "交通": ["公車客運", "捷運", "火車高鐵", "計程車", "加油", "停車費", "維修保養"],
+        "學習": ["學費", "書籍", "線上課程", "文具"],
+        "娛樂": ["電影", "KTV", "遊樂園", "活動門票", "玩具"],
+        "購物": ["衣服", "鞋包", "電子產品", "美妝護膚"],
+        "家庭": ["生活雜貨", "育兒開銷", "寵物用品", "孝親費"],
+        "送禮&捐贈": ["紅包", "禮物", "慈善捐款"]
+    };
+
+    let selectedMain = "飲食";
+    let selectedSub = "早餐";
+    let records = JSON.parse(localStorage.getItem('money_records')) || [];
+
+    window.onload = function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dateInput').value = today;
         
-        request.onupgradeneeded = (e) => {
-            db = e.target.result;
-            db.createObjectStore("records", { keyPath: "id", autoIncrement: true });
+        updateCateTriggerText();
+        renderRecords();
+        initModalCategories();
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW 註冊失敗', err));
+        }
+    };
+
+    function updateCateTriggerText() {
+        document.getElementById('cateTrigger').innerText = selectedMain + " > " + selectedSub;
+    }
+
+    function initModalCategories() {
+        const mainList = document.getElementById('mainCateList');
+        mainList.innerHTML = '';
+        
+        Object.keys(categoryData).forEach((mainCate) => {
+            const li = document.createElement('li');
+            li.className = 'cate-item';
+            if (mainCate === selectedMain) {
+                li.className = 'cate-item active';
+            }
+            li.innerText = mainCate;
+            li.onclick = () => selectMainCategory(mainCate, li);
+            mainList.appendChild(li);
+        });
+        
+        renderSubCategories(selectedMain);
+    }
+
+    function selectMainCategory(mainCate, element) {
+        document.querySelectorAll('.main-cate-list .cate-item').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        selectedMain = mainCate;
+        renderSubCategories(mainCate);
+    }
+
+    function renderSubCategories(mainCate) {
+        const subList = document.getElementById('subCateList');
+        subList.innerHTML = '';
+        
+        categoryData[mainCate].forEach(subCate => {
+            const li = document.createElement('li');
+            li.className = 'cate-item';
+            li.innerText = subCate;
+            li.onclick = () => {
+                selectedSub = subCate;
+                updateCateTriggerText();
+                closeModal();
+            };
+            subList.appendChild(li);
+        });
+    }
+
+    function openModal() { document.getElementById('cateModal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('cateModal').style.display = 'none'; }
+
+    function addRecord() {
+        const date = document.getElementById('dateInput').value;
+        const amount = parseFloat(document.getElementById('amountInput').value);
+        const note = document.getElementById('noteInput').value.trim();
+
+        if (!date) return alert('請選擇日期！');
+        if (!amount || amount <= 0) return alert('請輸入正確的金額！');
+
+        const newRecord = {
+            id: Date.now(),
+            date: date,
+            mainCate: selectedMain,
+            subCate: selectedSub,
+            amount: amount,
+            note: note
         };
 
-        request.onsuccess = (e) => {
-            db = e.target.result;
-            loadRecords(); // 成功開啟後立刻讀取舊資料
-        };
+        records.unshift(newRecord);
+        saveAndRender();
 
-        request.onerror = (e) => {
-            alert("資料庫初始化失敗，請確保在標準瀏覽器中開啟。");
-        };
+        document.getElementById('amountInput').value = '';
+        document.getElementById('noteInput').value = '';
+    }
 
-        // 2. 讀取資料庫
-        function loadRecords() {
-            const transaction = db.transaction(["records"], "readonly");
-            const store = transaction.objectStore("records");
-            const getAll = store.getAll();
+    function deleteRecord(id) {
+        if (confirm('確定要刪除這筆記帳紀錄嗎？')) {
+            records = records.filter(record => record.id !== id);
+            saveAndRender();
+        }
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('money_records', JSON.stringify(records));
+        renderRecords();
+    }
+
+    function renderRecords() {
+        const listDiv = document.getElementById('recordList');
+        listDiv.innerHTML = '';
+
+        if (records.length === 0) {
+            listDiv.innerHTML = '<div style="text-align:center; color:#999; padding:20px; font-size:14px;">暫無記帳明細</div>';
+            return;
+        }
+
+        records.forEach(record => {
+            const item = document.createElement('div');
+            item.className = 'record-item';
             
-            getAll.onsuccess = () => {
-                const list = document.getElementById('recordList');
-                list.innerHTML = '';
-                const records = getAll.result.reverse(); // 最新記的排最上面
-                records.forEach(r => {
-                    list.innerHTML += `<div class="record-item"><span>${r.date} - ${r.category}</span><strong>$${r.amount}</strong></div>`;
-                });
-            };
-        }
-
-        // 3. 寫入資料庫
-        function addRecord() {
-            const amount = document.getElementById('amount').value;
-            const category = document.getElementById('category').value;
-            if(!amount) return alert('請輸入金額');
-
-            const transaction = db.transaction(["records"], "readwrite");
-            const store = transaction.objectStore("records");
-            store.add({ amount: amount, category: category, date: new Date().toLocaleDateString() });
-
-            transaction.oncomplete = () => {
-                document.getElementById('amount').value = '';
-                loadRecords(); // 重新整理清單
-            };
-        }
-
-        // 4. 安全匯出 CSV 檔
-        function exportToCSV() {
-            const transaction = db.transaction(["records"], "readonly");
-            const store = transaction.objectStore("records");
-            store.getAll().onsuccess = (e) => {
-                const records = e.target.result;
-                if(records.length === 0) return alert('目前沒有任何資料可以備份喔！');
+            let noteHtml = '';
+            if (record.note) {
+                noteHtml = '<div class="record-note">' + record.note + '</div>';
+            }
+            
+            item.innerHTML = '<div class="record-info">' +
+                '<div class="record-date">' + record.date + '</div>' +
+                '<div class="record-cate">' + record.mainCate + ' - ' + record.subCate + '</div>' +
+                noteHtml +
+                '</div>' +
+                '<div class="record-right">' +
+                '<span class="record-amount">$' + record.amount.toLocaleString() + '</span>' +
+                '<button class="btn-delete" onclick="deleteRecord(' + record.id + ')">刪除</button>' +
+                '</div>';
                 
-                let csvContent = "\uFEFF日期,分類,金額\n"; // 加上 BOM 防止 Excel 開啟時變亂碼
-                records.forEach(r => {
-                    csvContent += `${r.date},${r.category},${r.amount}\n`;
-                });
+            listDiv.appendChild(item);
+        });
+    }
 
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.setAttribute("href", url);
-                link.setAttribute("download", `我的記帳備份_${new Date().toISOString().slice(0,10)}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
-        }
+    function exportCSV() {
+        if (records.length === 0) return alert('目前沒有資料可匯出！');
+        let csvContent = "\uFEFF日期,主分類,子分類,金額,備註\n";
+        records.forEach(r => {
+            let n = r.note || '';
+            csvContent += r.date + ',' + r.mainCate + ',' + r.subCate + ',' + r.amount + ',"' + n + '"\n';
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", "單機記帳本備份_" + new Date().toISOString().split('T')[0] + ".csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 
-        // 5. 匯入 CSV 檔還原
-        function importFromCSV(input) {
-            const file = input.files[0];
-            if (!file) return;
+    function importCSV() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv';
+        input.onchange = e => {
+            const file = e.target.files.item(0);
             const reader = new FileReader();
-            reader.onload = function (e) {
-                const text = e.target.result;
-                const lines = text.split('\n');
-                const transaction = db.transaction(["records"], "readwrite");
-                const store = transaction.objectStore("records");
-
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line) continue;
-                    const cols = line.split(',');
-                    if (cols.length >= 3) {
-                        store.add({ date: cols[0], category: cols[1], amount: cols[2] });
+            reader.readAsText(file, 'UTF-8');
+            reader.onload = readerEvent => {
+                const content = readerEvent.target.result;
+                const lines = content.split('\n');
+                const importedRecords = [];
+                
+                for(let i = 1; i < lines.length; i++) {
+                    const rowText = lines[i].trim();
+                    if (!rowText) continue;
+                    
+                    const cols = rowText.split(',');
+                    if (cols.length >= 4) {
+                        const csvDate = cols.shift().trim();
+                        const csvMain = cols.shift().trim();
+                        const csvSub = cols.shift().trim();
+                        const csvAmount = parseFloat(cols.shift().trim()) || 0;
+                        const csvNote = cols.join(',').replace(/"/g, '').trim();
+                        
+                        importedRecords.push({
+                            id: Date.now() + i,
+                            date: csvDate,
+                            mainCate: csvMain,
+                            subCate: csvSub,
+                            amount: csvAmount,
+                            note: csvNote
+                        });
                     }
                 }
-                transaction.oncomplete = () => {
-                    alert('備份還原成功！');
-                    loadRecords();
-                    input.value = ''; // 清空檔案選擇器
-                };
-            };
-            reader.readAsText(file);
+                if (importedRecords.length > 0) {
+                    if (confirm("偵測到 " + importedRecords.length + " 筆紀錄，是否要覆蓋目前的手機資料？")) {
+                        records = importedRecords;
+                        saveAndRender();
+                    }
+                } else {
+                    alert('辨識失敗，請確認檔案格式是否正確。');
+                }
+            }
         }
-
-        // 註冊 PWA 離線快取
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
-    </script>
+        input.click();
+    }
+</script>
 </body>
 </html>
