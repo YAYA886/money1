@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<!-- 💡 關鍵修復：強制加上 translate="no" 與 notranslate 類別，防範瀏覽器自動翻譯導致程式碼當機 -->
+<html lang="zh-TW" translate="no" class="notranslate">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>安全單機記帳本</title>
     <link rel="manifest" href="manifest.json">
-    <!-- 💡 載入現代高質感圖表庫 Chart.js -->
+    <!-- 💡 載入現代圖表庫 -->
     <script src="https://jsdelivr.net"></script>
     <style>
         :root {
@@ -13,304 +15,99 @@
             --bg-color: #f5f5f7;
             --card-color: #ffffff;
             --text-color: #333333;
-            --danger-color: #ff3b30;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 16px; display: flex; justify-content: center; }
         .app-container { width: 100%; max-width: 450px; background: var(--card-color); border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); padding: 20px; min-height: 90vh; display: flex; flex-direction: column; }
-        h2 { text-align: center; margin-bottom: 20px; font-size: 20px; font-weight: 600; }
-        
+        h2 { text-align: center; margin-bottom: 20px; font-size: 20px; }
         .form-group { margin-bottom: 16px; }
-        label { display: block; font-size: 14px; color: #666; margin-bottom: 6px; font-weight: 500; }
-        input, select, .category-trigger { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 12px; font-size: 16px; background: #fafafa; outline: none; transition: 0.2s; }
-        input:focus { border-color: var(--primary-color); background: #fff; }
-        
-        .category-trigger { background: #fff; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .category-trigger::after { content: "▼"; font-size: 12px; color: #999; }
-
-        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        button { flex: 1; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .btn-main { background-color: var(--primary-color); color: white; }
-        .btn-main:active { opacity: 0.8; }
-        .btn-sub { background-color: #e5e5e5; color: #333; font-size: 14px; padding: 8px; }
-
-        /* 📊 圓環圖區塊排版 */
-        .charts-container { display: flex; flex-direction: column; gap: 20px; margin: 20px 0; padding: 15px; background: #fdfdfd; border: 1px solid #f0f0f2; border-radius: 20px; }
-        .chart-box { background: #ffffff; border-radius: 16px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); text-align: center; }
-        .chart-title { font-size: 15px; font-weight: 600; color: #555; margin-bottom: 10px; }
-        .chart-wrapper { position: relative; width: 100%; max-width: 220px; margin: 0 auto; }
-
-        /* 📋 歷史明細與篩選提示 */
+        label { display: block; font-size: 14px; color: #666; margin-bottom: 6px; }
+        input { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 12px; font-size: 16px; background: #fafafa; outline: none; }
+        select { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 12px; font-size: 16px; background: #fff; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; background-color: var(--primary-color); color: white; margin-top: 10px; }
+        .charts-container { display: flex; flex-direction: column; gap: 20px; margin: 20px 0; padding: 15px; background: #fdfdfd; border-radius: 20px; border: 1px solid #eee; }
+        .chart-box { background: #fff; border-radius: 16px; padding: 15px; text-align: center; }
+        .chart-title { font-size: 14px; font-weight: 600; color: #555; margin-bottom: 10px; }
+        .chart-wrapper { position: relative; width: 100%; max-width: 180px; margin: 0 auto; }
         .history-section { margin-top: 15px; flex: 1; }
-        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .history-title { font-size: 16px; font-weight: 600; color: #444; }
-        .filter-badge { background-color: #e3f2fd; color: #0071e3; font-size: 12px; padding: 4px 10px; border-radius: 20px; font-weight: 600; cursor: pointer; }
-        
-        .record-item { background: #f9f9f9; padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--primary-color); }
-        .record-info { display: flex; flex-direction: column; gap: 4px; }
-        .record-date { font-size: 12px; color: #888; }
-        .record-cate { font-size: 15px; font-weight: 500; }
-        .record-note { font-size: 13px; color: #666; }
-        .record-right { display: flex; align-items: center; gap: 12px; }
-        .record-amount { font-size: 16px; font-weight: 700; color: #222; }
-        .btn-delete { background: none; border: none; color: var(--danger-color); font-size: 14px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
-        .btn-delete:hover { background: #ffebeb; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 20px; max-height: 80vh; display: flex; flex-direction: column; }
-        .modal-header { font-size: 18px; font-weight: 600; text-align: center; margin-bottom: 15px; }
-        .modal-body { display: flex; gap: 15px; overflow: hidden; flex: 1; }
-        .main-cate-list, .sub-cate-list { flex: 1; overflow-y: auto; list-style: none; border: 1px solid #eee; border-radius: 10px; }
-        .cate-item { padding: 12px; text-align: center; cursor: pointer; border-bottom: 1px solid #f5f5f5; font-size: 15px; display: flex; justify-content: center; align-items: center; }
-        .sub-cate-list .cate-item { display: flex; justify-content: space-between; padding: 10px 8px; gap: 4px; }
-        .cate-text { flex: 1; text-align: left; padding-left: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .cate-item:last-child { border-bottom: none; }
-        .main-cate-list .cate-item.active { background: #e3f2fd; color: var(--primary-color); font-weight: 600; }
-        
-        .btn-cate-del { background: none; border: none; color: #aaa; font-size: 14px; padding: 2px 6px; cursor: pointer; border-radius: 4px; }
-        .btn-cate-del:hover { color: var(--danger-color); background: #ffebeb; }
-        .modal-footer { margin-top: 15px; text-align: right; }
+        .history-title { font-size: 16px; font-weight: 600; color: #444; margin-bottom: 12px; }
+        .filter-badge { background-color: #e3f2fd; color: #0071e3; font-size: 12px; padding: 4px 10px; border-radius: 20px; cursor: pointer; display: inline-block; margin-bottom: 10px; }
+        .record-item { background: #f9f9f9; padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #0071e3; }
+        .btn-delete { background: none; color: #ff3b30; font-size: 14px; cursor: pointer; padding: 4px; width: auto; margin: 0; }
     </style>
 </head>
 <body>
-
 <div class="app-container">
     <h2>安全單機記帳本</h2>
-
+    <div class="form-group"><label>選擇日期</label><input type="date" id="dateInput"></div>
+    <div class="form-group"><label>輸入金額</label><input type="number" id="amountInput" placeholder="$ 0" inputmode="numeric"></div>
     <div class="form-group">
-        <label>選擇日期</label>
-        <input type="date" id="dateInput">
+        <label>選擇大項分類</label>
+        <select id="mainCateInput">
+            <option value="飲食">飲食 🍔</option>
+            <option value="交通">交通 🚗</option>
+            <option value="娛樂">娛樂 🎬</option>
+            <option value="購物">購物 🛍️</option>
+            <option value="住家">住家 🏠</option>
+        </select>
     </div>
-
-    <div class="form-group">
-        <label>輸入金額</label>
-        <input type="number" id="amountInput" placeholder="$ 0" inputmode="numeric">
-    </div>
-
-    <div class="form-group">
-        <label>選擇分類 (主分類 > 子分類)</label>
-        <div class="category-trigger" id="cateTrigger" onclick="openModal()">點擊選擇分類</div>
-    </div>
-
-    <div class="form-group">
-        <label>備註說明</label>
-        <input type="text" id="noteInput" placeholder="請輸入備註（選填）">
-    </div>
-
-    <button class="btn-main" onclick="addRecord()">儲存紀錄</button>
-    <div class="btn-group">
-        <button class="btn-sub" onclick="exportCSV()">匯出 CSV 備份</button>
-        <button class="btn-sub" onclick="importCSV()">匯入備份</button>
-    </div>
-
-    <!-- 📊 雙圓環圖區塊 -->
+    <div class="form-group"><label>備註說明 (可自行填寫自訂細項名目)</label><input type="text" id="noteInput" placeholder="例如：戒指、午餐麥當勞"></div>
+    <button onclick="addRecord()">儲存紀錄</button>
     <div class="charts-container">
-        <div class="chart-box">
-            <div class="chart-title">🗓️ 當月消費比例 (點擊區塊可篩選明細)</div>
-            <div class="chart-wrapper"><canvas id="monthChart"></canvas></div>
-        </div>
-        <div class="chart-box">
-            <div class="chart-title">🌟 當年消費比例 (點擊區塊可篩選明細)</div>
-            <div class="chart-wrapper"><canvas id="yearChart"></canvas></div>
-        </div>
+        <div class="chart-box"><div class="chart-title" id="mTitle">🗓️ 當月消費比例 (點擊區塊可篩選)</div><div class="chart-wrapper"><canvas id="monthChart"></canvas></div></div>
+        <div class="chart-box"><div class="chart-title" id="yTitle">🌟 當年消費比例 (點擊區塊可篩選)</div><div class="chart-wrapper"><canvas id="yearChart"></canvas></div></div>
     </div>
-
     <div class="history-section">
-        <div class="history-header">
-            <div class="history-title" id="listTitle">歷史明細</div>
-            <div id="filterBadgeContainer"></div>
-        </div>
+        <div class="history-title" id="listTitle">歷史明細</div>
+        <div id="badgeBox"></div>
         <div id="recordList"></div>
     </div>
 </div>
-
-<div class="modal" id="cateModal">
-    <div class="modal-content">
-        <div class="modal-header">選擇分類</div>
-        <div class="modal-body">
-            <ul class="main-cate-list" id="mainCateList"></ul>
-            <ul class="sub-cate-list" id="subCateList"></ul>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-sub" style="width: auto; padding: 6px 16px;" onclick="closeModal()">取消</button>
-        </div>
-    </div>
-</div>
 <script>
-    // 定義主分類專屬的可愛美感顏色 (馬卡龍色系)
+    // 🎨 馬卡龍美感色彩設定
     const categoryColors = {
-        "飲食": "#ffb3ba", // 粉紅
-        "住家": "#ffdfba", // 粉橘
-        "電信": "#ffffba", // 柔黃
-        "交通": "#baffc9", // 薄荷綠
-        "學習": "#bae1ff", // 天空藍
-        "娛樂": "#e8c4ff", // 薰衣草紫
-        "購物": "#fdd7e4", // 櫻花粉
-        "家庭": "#c2f0fc", // 水藍
-        "送禮&捐贈": "#d0f4de" // 青瓷綠
+        "飲食": "#ffb3ba",
+        "交通": "#baffc9",
+        "娛樂": "#e8c4ff",
+        "購物": "#fdd7e4",
+        "住家": "#ffdfba"
     };
 
-    // 預設基礎子分類
-    const defaultCategories = {
-        "飲食": ["早餐", "午餐", "晚餐", "宵夜", "食材", "零食&點心", "飲料", "水果", "咖啡", "酒"],
-        "住家": ["房租", "水費", "電費", "瓦斯費", "管理費", "修繕", "家居用品"],
-        "電信": ["手機費", "網路費", "第四台", "串流影音"],
-        "交通": ["公車客運", "捷運", "火車高鐵", "計程車", "加油", "停車費", "維修保養"],
-        "學習": ["學費", "書籍", "線上課程", "文具"],
-        "娛樂": ["電影", "KTV", "遊樂園", "活動門票", "玩具"],
-        "購物": ["衣服", "鞋包", "電子產品", "美妝護膚"],
-        "家庭": ["生活雜貨", "育兒開銷", "寵物用品", "孝親費"],
-        "送禮&捐贈": ["紅包", "禮物", "慈善捐款"]
-    };
-
-    let customCategories = JSON.parse(localStorage.getItem('custom_categories')) || {
-        "飲食": [], "住家": [], "電信": [], "交通": [], "學習": [], "娛樂": [], "購物": [], "家庭": [], "送禮&捐贈": []
-    };
-
-    let selectedMain = "飲食";
-    let selectedSub = "早餐";
     let records = JSON.parse(localStorage.getItem('money_records')) || [];
-
-    // 當前明細篩選狀態 (null 代表顯示全部，也可以是 'month' 或 'year')
-    let currentFilterType = null; 
-    let currentFilterCategory = null; 
-
-    // 圖表全域變數
+    let currentFilterType = null;
+    let currentFilterCategory = null;
     let monthChartInstance = null;
     let yearChartInstance = null;
 
     window.onload = function() {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('dateInput').value = today;
+        // 預設日期初始化（橫線格式，與瀏覽器原生 Date 物件高度相容）
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        document.getElementById('dateInput').value = yyyy + '-' + mm + '-' + dd;
         
-        updateCateTriggerText();
-        initModalCategories();
-        // 渲染明細並建立圖表
-        renderRecords(); 
-        
+        renderRecords();
+
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW 註冊失敗', err));
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW註冊失敗', err));
         }
     };
 
-    function updateCateTriggerText() {
-        document.getElementById('cateTrigger').innerText = selectedMain + " > " + selectedSub;
-    }
-
-    function initModalCategories() {
-        const mainList = document.getElementById('mainCateList');
-        mainList.innerHTML = '';
-        
-        Object.keys(defaultCategories).forEach((mainCate) => {
-            const li = document.createElement('li');
-            li.className = 'cate-item';
-            if (mainCate === selectedMain) {
-                li.className = 'cate-item active';
-            }
-            li.innerText = mainCate;
-            li.onclick = () => selectMainCategory(mainCate, li);
-            mainList.appendChild(li);
-        });
-        
-        renderSubCategories(selectedMain);
-    }
-
-    function selectMainCategory(mainCate, element) {
-        document.querySelectorAll('.main-cate-list .cate-item').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
-        selectedMain = mainCate;
-        renderSubCategories(mainCate);
-    }
-
-    function openModal() { document.getElementById('cateModal').style.display = 'flex'; }
-    function closeModal() { document.getElementById('cateModal').style.display = 'none'; }
-    // 渲染子分類清單（含內建、自訂項目與記憶功能）
-    function renderSubCategories(mainCate) {
-        const subList = document.getElementById('subCateList');
-        subList.innerHTML = '';
-        
-        // 1. 列出內建項目
-        defaultCategories[mainCate].forEach(subCate => {
-            const li = document.createElement('li');
-            li.className = 'cate-item';
-            li.innerHTML = '<span class="cate-text">' + subCate + '</span>';
-            li.onclick = () => {
-                selectedSub = subCate;
-                updateCateTriggerText();
-                closeModal();
-            };
-            subList.appendChild(li);
-        });
-
-        // 2. 列出該使用者自訂的項目（含防誤觸二次確認刪除按鈕）
-        if (customCategories[mainCate]) {
-            customCategories[mainCate].forEach(subCate => {
-                const li = document.createElement('li');
-                li.className = 'cate-item';
-                li.innerHTML = '<span class="cate-text" style="color:#0071e3;font-weight:500;">其他(' + subCate + ')</span><button class="btn-cate-del">❌</button>';
-                
-                li.querySelector('.cate-text').onclick = () => {
-                    selectedSub = '其他(' + subCate + ')';
-                    updateCateTriggerText();
-                    closeModal();
-                };
-
-                // ❌ 點擊右側刪除，觸發防呆二次確認
-                li.querySelector('.btn-cate-del').onclick = (e) => {
-                    e.stopPropagation();
-                    const doubleCheck = confirm('⚠️ 確定要永久刪除「' + subCate + '」這個自訂子分類嗎？\n（先前已記錄在歷史帳目中的名稱不會受到影響）');
-                    if (doubleCheck) {
-                        customCategories[mainCate] = customCategories[mainCate].filter(item => item !== subCate);
-                        localStorage.setItem('custom_categories', JSON.stringify(customCategories));
-                        renderSubCategories(mainCate);
-                    }
-                };
-                subList.appendChild(li);
-            });
-        }
-
-        // 3. 尾巴加上「➕ 新增自訂項目」按鈕
-        const addLi = document.createElement('li');
-        addLi.className = 'cate-item';
-        addLi.innerHTML = '<span class="cate-text" style="color:#34c759;font-weight:600;text-align:center;width:100%;">➕ 新增自訂項目</span>';
-        addLi.onclick = () => {
-            let customInput = prompt('請輸入要在「' + mainCate + '」中新增的自訂細項名稱：\n(例如：戒指、玩偶)', '');
-            if (customInput === null) return;
-            
-            customInput = customInput.trim();
-            if (customInput === '') {
-                alert('名稱不能為空白！');
-                return;
-            }
-            
-            if (defaultCategories[mainCate].includes(customInput) || customCategories[mainCate].includes(customInput)) {
-                alert('此項目名稱已存在！');
-                return;
-            }
-
-            customCategories[mainCate].push(customInput);
-            localStorage.setItem('custom_categories', JSON.stringify(customCategories));
-            
-            selectedSub = '其他(' + customInput + ')';
-            updateCateTriggerText();
-            closeModal();
-        };
-        subList.appendChild(addLi);
-    }
-
+    // ➕ 新增記帳紀錄
     function addRecord() {
-        const date = document.getElementById('dateInput').value;
+        const dateVal = document.getElementById('dateInput').value;
         const amount = parseFloat(document.getElementById('amountInput').value);
+        const mainCate = document.getElementById('mainCateInput').value;
         const note = document.getElementById('noteInput').value.trim();
 
-        if (!date) return alert('請選擇日期！');
+        if (!dateVal) return alert('請選擇日期！');
         if (!amount || amount <= 0) return alert('請輸入正確的金額！');
 
         const newRecord = {
             id: Date.now(),
-            date: date,
-            mainCate: selectedMain,
-            subCate: selectedSub,
+            date: dateVal,
+            mainCate: mainCate,
             amount: amount,
             note: note
         };
@@ -322,6 +119,7 @@
         document.getElementById('noteInput').value = '';
     }
 
+    // ❌ 刪除記帳紀錄
     function deleteRecord(id) {
         if (confirm('確定要刪除這筆記帳紀錄嗎？')) {
             records = records.filter(record => record.id !== id);
@@ -334,82 +132,92 @@
         renderRecords();
     }
 
-    // 🧮 計算圖表數據並重新繪製可愛圓環圖
+    // 🧮 採用高相容原生 Date 物件進行圓環圖動態分析
     function updateCharts() {
-        const today = new Date();
-        const currentYearStr = today.getFullYear().toString();
-        const currentMonthStr = (today.getMonth() + 1).toString().padStart(2, '0');
-        const targetYearMonth = currentYearStr + '-' + currentMonthStr;
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
 
-        const monthSums = {};
-        const yearSums = {};
-        
-        Object.keys(categoryColors).forEach(cate => {
-            monthSums[cate] = 0;
-            yearSums[cate] = 0;
-        });
+        const monthSums = { "飲食": 0, "交通": 0, "娛樂": 0, "購物": 0, "住家": 0 };
+        const yearSums = { "飲食": 0, "交通": 0, "娛樂": 0, "購物": 0, "住家": 0 };
+
+        let hasMonth = false;
+        let hasYear = false;
 
         records.forEach(r => {
             if (!r.date) return;
-            const rYear = r.date.substring(0, 4);
-            const rYearMonth = r.date.substring(0, 7);
+            
+            // 💡 安全修復：將儲存的日期字串統一轉為標準格式，完美相容斜線與橫線
+            const recordDate = new Date(r.date.replace(/\//g, '-')); 
+            if (isNaN(recordDate.getTime())) return; 
 
-            if (rYearMonth === targetYearMonth) {
-                if (monthSums[r.mainCate] !== undefined) monthSums[r.mainCate] += r.amount;
-            }
-            if (rYear === currentYearStr) {
-                if (yearSums[r.mainCate] !== undefined) yearSums[r.mainCate] += r.amount;
+            const rYear = recordDate.getFullYear();
+            const rMonth = recordDate.getMonth();
+
+            if (rYear === currentYear) {
+                if (yearSums[r.mainCate] !== undefined) {
+                    yearSums[r.mainCate] += r.amount;
+                    hasYear = true;
+                }
+                if (rMonth === currentMonth) {
+                    if (monthSums[r.mainCate] !== undefined) {
+                        monthSums[r.mainCate] += r.amount;
+                        hasMonth = true;
+                    }
+                }
             }
         });
 
         const labels = Object.keys(categoryColors);
         const colors = Object.values(categoryColors);
-        const monthData = labels.map(cate => monthSums[cate]);
-        const yearData = labels.map(cate => yearSums[cate]);
+        const mData = labels.map(c => monthSums[c]);
+        const yData = labels.map(c => yearSums[c]);
 
-        // 🟢 繪製或更新當月圓環圖
+        // 🗓️ 繪製當月圓環
+        document.getElementById('mTitle').innerText = '🗓️ 當月消費比例' + (hasMonth ? '' : ' (暫無資料)');
         if (monthChartInstance) monthChartInstance.destroy();
-        const ctxMonth = document.getElementById('monthChart').getContext('2d');
-        monthChartInstance = new Chart(ctxMonth, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{ data: monthData, backgroundColor: colors, borderWidth: 2 }]
-            },
-            options: {
-                plugins: { legend: { display: false } },
-                cutout: '65%',
-                onClick: (e, elements) => {
-                    if (elements.length > 0) {
-                        const index = elements[0].index;
-                        filterByChart('month', labels[index]);
+        if (hasMonth) {
+            const ctxM = document.getElementById('monthChart').getContext('2d');
+            monthChartInstance = new Chart(ctxM, {
+                type: 'doughnut',
+                data: { labels: labels, datasets: [{ data: mData, backgroundColor: colors, borderWidth: 2 }] },
+                options: {
+                    plugins: { legend: { display: false } },
+                    cutout: '65%',
+                    // 💡 官方標準點擊事件，配合外層防翻譯，絕不當機！
+                    onClick: (e, elements) => {
+                        if (elements && elements.length > 0) {
+                            const activeIndex = elements[0].index;
+                            filterByChart('month', labels[activeIndex]);
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
-        // 🔵 繪製或更新當年度圓環圖
+        // 🌟 繪製當年圓環
+        document.getElementById('yTitle').innerText = '🌟 當年消費比例' + (hasYear ? '' : ' (暫無資料)');
         if (yearChartInstance) yearChartInstance.destroy();
-        const ctxYear = document.getElementById('yearChart').getContext('2d');
-        yearChartInstance = new Chart(ctxYear, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{ data: yearData, backgroundColor: colors, borderWidth: 2 }]
-            },
-            options: {
-                plugins: { legend: { display: false } },
-                cutout: '65%',
-                onClick: (e, elements) => {
-                    if (elements.length > 0) {
-                        const index = elements[0].index;
-                        filterByChart('year', labels[index]);
+        if (hasYear) {
+            const ctxY = document.getElementById('yearChart').getContext('2d');
+            yearChartInstance = new Chart(ctxY, {
+                type: 'doughnut',
+                data: { labels: labels, datasets: [{ data: yData, backgroundColor: colors, borderWidth: 2 }] },
+                options: {
+                    plugins: { legend: { display: false } },
+                    cutout: '65%',
+                    onClick: (e, elements) => {
+                        if (elements && elements.length > 0) {
+                            const activeIndex = elements[0].index;
+                            filterByChart('year', labels[activeIndex]);
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
-    // 🔍 點擊圖表區塊的動態篩選核心邏輯
+
+    // 🔍 圓環點擊過濾明細
     function filterByChart(type, category) {
         currentFilterType = type;
         currentFilterCategory = category;
@@ -422,126 +230,66 @@
         renderRecords();
     }
 
-    // 📋 渲染明細清單（支援點擊圖表後的動態過濾篩選）
+    // 📋 歷史明細動態生成
     function renderRecords() {
-        updateCharts(); // 每次刷新都重新計算圓環圖比例
+        updateCharts();
 
         const listDiv = document.getElementById('recordList');
-        const badgeContainer = document.getElementById('filterBadgeContainer');
-        const listTitle = document.getElementById('listTitle');
+        const badgeDiv = document.getElementById('badgeBox');
+        const titleEl = document.getElementById('listTitle');
+        
         listDiv.innerHTML = '';
-        badgeContainer.innerHTML = '';
+        badgeDiv.innerHTML = '';
 
-        const today = new Date();
-        const currentYearStr = today.getFullYear().toString();
-        const currentMonthStr = (today.getMonth() + 1).toString().padStart(2, '0');
-        const targetYearMonth = currentYearStr + '-' + currentMonthStr;
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
 
-        // 根據點擊狀態篩選資料庫
-        let filteredRecords = records;
+        let filtered = records;
         if (currentFilterType === 'month') {
-            listTitle.innerText = '歷史明細 (當月篩選)';
-            badgeContainer.innerHTML = '<span class="filter-badge" onclick="clearFilter()">' + currentFilterCategory + ' ❌ 清除</span>';
-            filteredRecords = records.filter(r => r.date.substring(0, 7) === targetYearMonth && r.mainCate === currentFilterCategory);
+            titleEl.innerText = '歷史明細 (當月篩選)';
+            badgeDiv.innerHTML = '<span class="filter-badge" onclick="clearFilter()">' + currentFilterCategory + ' ❌ 清除篩選</span>';
+            filtered = records.filter(r => {
+                const rd = new Date(r.date.replace(/\//g, '-'));
+                return !isNaN(rd.getTime()) && rd.getFullYear() === currentYear && rd.getMonth() === currentMonth && r.mainCate === currentFilterCategory;
+            });
         } else if (currentFilterType === 'year') {
-            listTitle.innerText = '歷史明細 (年度篩選)';
-            badgeContainer.innerHTML = '<span class="filter-badge" onclick="clearFilter()">' + currentFilterCategory + ' ❌ 清除</span>';
-            filteredRecords = records.filter(r => r.date.substring(0, 4) === currentYearStr && r.mainCate === currentFilterCategory);
+            titleEl.innerText = '歷史明細 (年度篩選)';
+            badgeDiv.innerHTML = '<span class="filter-badge" onclick="clearFilter()">' + currentFilterCategory + ' ❌ 清除篩選</span>';
+            filtered = records.filter(r => {
+                const rd = new Date(r.date.replace(/\//g, '-'));
+                return !isNaN(rd.getTime()) && rd.getFullYear() === currentYear && r.mainCate === currentFilterCategory;
+            });
         } else {
-            listTitle.innerText = '歷史明細 (全部)';
+            titleEl.innerText = '歷史明細 (全部)';
         }
 
-        if (filteredRecords.length === 0) {
-            listDiv.innerHTML = '<div style="text-align:center;color:#999;padding:20px;font-size:14px;">暫無符合的記帳明細</div>';
+        if (filtered.length === 0) {
+            listDiv.innerHTML = '<div style="text-align:center;color:#999;padding:20px;font-size:14px;">暫無符合的明細</div>';
             return;
         }
 
-        filteredRecords.forEach(record => {
+        filtered.forEach(r => {
             const item = document.createElement('div');
             item.className = 'record-item';
-            item.style.borderLeftColor = categoryColors[record.mainCate] || '#0071e3';
+            item.style.borderLeftColor = categoryColors[r.mainCate] || '#0071e3';
             
-            let noteHtml = '';
-            if (record.note) {
-                noteHtml = '<div class="record-note">' + record.note + '</div>';
+            let displayContent = '<strong>' + r.mainCate + '</strong>';
+            if (r.note) {
+                displayContent += ' (' + r.note + ')';
             }
-            
+
             item.innerHTML = '<div class="record-info">' +
-                '<div class="record-date">' + record.date + '</div>' +
-                '<div class="record-cate">' + record.mainCate + ' - ' + record.subCate + '</div>' +
-                noteHtml +
+                '<div class="record-date">' + r.date + '</div>' +
+                '<div style="font-size:15px; margin-top:2px;">' + displayContent + '</div>' +
                 '</div>' +
-                '<div class="record-right">' +
-                '<span class="record-amount">$' + record.amount.toLocaleString() + '</span>' +
-                '<button class="btn-delete" onclick="deleteRecord(' + record.id + ')">刪除</button>' +
+                '<div style="display:flex; align-items:center; gap:12px;">' +
+                '<span style="font-weight:700; font-size:16px;">$' + r.amount.toLocaleString() + '</span>' +
+                '<button class="btn-delete" onclick="deleteRecord(' + r.id + ')">刪除</button>' +
                 '</div>';
                 
             listDiv.appendChild(item);
         });
-    }
-
-    function exportCSV() {
-        if (records.length === 0) return alert('目前沒有資料可匯出！');
-        let csvContent = "\uFEFF日期,主分類,子分類,金額,備註\n";
-        records.forEach(r => {
-            let n = r.note || '';
-            csvContent += r.date + ',' + r.mainCate + ',' + r.subCate + ',' + r.amount + ',"' + n + '"\n';
-        });
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.setAttribute("download", "單機記帳本備份_" + new Date().toISOString().split('T') + ".csv");
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    function importCSV() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.csv';
-        input.onchange = e => {
-            const file = e.target.files.item(0);
-            const reader = new FileReader();
-            reader.readAsText(file, 'UTF-8');
-            reader.onload = readerEvent => {
-                const content = readerEvent.target.result;
-                const lines = content.split('\n');
-                const importedRecords = [];
-                
-                for(let i = 1; i < lines.length; i++) {
-                    const rowText = lines[i].trim();
-                    if (!rowText) continue;
-                    
-                    const cols = rowText.split(',');
-                    if (cols.length >= 4) {
-                        const csvDate = cols.shift().trim();
-                        const csvMain = cols.shift().trim();
-                        const csvSub = cols.shift().trim();
-                        const csvAmount = parseFloat(cols.shift().trim()) || 0;
-                        const csvNote = cols.join(',').replace(/"/g, '').trim();
-                        
-                        importedRecords.push({
-                            id: Date.now() + i,
-                            date: csvDate,
-                            mainCate: csvMain,
-                            subCate: csvSub,
-                            amount: csvAmount,
-                            note: csvNote
-                        });
-                    }
-                }
-                if (importedRecords.length > 0) {
-                    if (confirm("偵測到 " + importedRecords.length + " 筆紀錄，是否要覆蓋目前的手機資料？")) {
-                        records = importedRecords;
-                        saveAndRender();
-                    }
-                } else {
-                    alert('辨識失敗，請確認檔案格式是否正確。');
-                }
-            }
-        }
-        input.click();
     }
 </script>
 </body>
