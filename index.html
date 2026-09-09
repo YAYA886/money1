@@ -1,296 +1,179 @@
 <!DOCTYPE html>
-<!-- 💡 關鍵修復：強制加上 translate="no" 與 notranslate 類別，防範瀏覽器自動翻譯導致程式碼當機 -->
-<html lang="zh-TW" translate="no" class="notranslate">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>安全單機記帳本</title>
-    <link rel="manifest" href="manifest.json">
-    <!-- 💡 載入現代圖表庫 -->
-    <script src="https://jsdelivr.net"></script>
-    <style>
-        :root {
-            --primary-color: #0071e3;
-            --bg-color: #f5f5f7;
-            --card-color: #ffffff;
-            --text-color: #333333;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); padding: 16px; display: flex; justify-content: center; }
-        .app-container { width: 100%; max-width: 450px; background: var(--card-color); border-radius: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); padding: 20px; min-height: 90vh; display: flex; flex-direction: column; }
-        h2 { text-align: center; margin-bottom: 20px; font-size: 20px; }
-        .form-group { margin-bottom: 16px; }
-        label { display: block; font-size: 14px; color: #666; margin-bottom: 6px; }
-        input { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 12px; font-size: 16px; background: #fafafa; outline: none; }
-        select { width: 100%; padding: 12px; border: 1px solid #e5e5e5; border-radius: 12px; font-size: 16px; background: #fff; }
-        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; background-color: var(--primary-color); color: white; margin-top: 10px; }
-        .charts-container { display: flex; flex-direction: column; gap: 20px; margin: 20px 0; padding: 15px; background: #fdfdfd; border-radius: 20px; border: 1px solid #eee; }
-        .chart-box { background: #fff; border-radius: 16px; padding: 15px; text-align: center; }
-        .chart-title { font-size: 14px; font-weight: 600; color: #555; margin-bottom: 10px; }
-        .chart-wrapper { position: relative; width: 100%; max-width: 180px; margin: 0 auto; }
-        .history-section { margin-top: 15px; flex: 1; }
-        .history-title { font-size: 16px; font-weight: 600; color: #444; margin-bottom: 12px; }
-        .filter-badge { background-color: #e3f2fd; color: #0071e3; font-size: 12px; padding: 4px 10px; border-radius: 20px; cursor: pointer; display: inline-block; margin-bottom: 10px; }
-        .record-item { background: #f9f9f9; padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #0071e3; }
-        .btn-delete { background: none; color: #ff3b30; font-size: 14px; cursor: pointer; padding: 4px; width: auto; margin: 0; }
-    </style>
+    <title>記帳本</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="app-container">
-    <h2>安全單機記帳本</h2>
-    <div class="form-group"><label>選擇日期</label><input type="date" id="dateInput"></div>
-    <div class="form-group"><label>輸入金額</label><input type="number" id="amountInput" placeholder="$ 0" inputmode="numeric"></div>
-    <div class="form-group">
-        <label>選擇大項分類</label>
-        <select id="mainCateInput">
-            <option value="飲食">飲食 🍔</option>
-            <option value="交通">交通 🚗</option>
-            <option value="娛樂">娛樂 🎬</option>
-            <option value="購物">購物 🛍️</option>
-            <option value="住家">住家 🏠</option>
-        </select>
-    </div>
-    <div class="form-group"><label>備註說明 (可自行填寫自訂細項名目)</label><input type="text" id="noteInput" placeholder="例如：戒指、午餐麥當勞"></div>
-    <button onclick="addRecord()">儲存紀錄</button>
-    <div class="charts-container">
-        <div class="chart-box"><div class="chart-title" id="mTitle">🗓️ 當月消費比例 (點擊區塊可篩選)</div><div class="chart-wrapper"><canvas id="monthChart"></canvas></div></div>
-        <div class="chart-box"><div class="chart-title" id="yTitle">🌟 當年消費比例 (點擊區塊可篩選)</div><div class="chart-wrapper"><canvas id="yearChart"></canvas></div></div>
-    </div>
-    <div class="history-section">
-        <div class="history-title" id="listTitle">歷史明細</div>
-        <div id="badgeBox"></div>
-        <div id="recordList"></div>
-    </div>
-</div>
-<script>
-    // 🎨 馬卡龍美感色彩設定
-    const categoryColors = {
-        "飲食": "#ffb3ba",
-        "交通": "#baffc9",
-        "娛樂": "#e8c4ff",
-        "購物": "#fdd7e4",
-        "住家": "#ffdfba"
-    };
 
-    let records = JSON.parse(localStorage.getItem('money_records')) || [];
-    let currentFilterType = null;
-    let currentFilterCategory = null;
-    let monthChartInstance = null;
-    let yearChartInstance = null;
+    <!-- 頂端導覽列 -->
+    <header class="app-header">
+        <h1>記帳本</h1>
+        <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+    </header>
 
-    window.onload = function() {
-        // 預設日期初始化（橫線格式，與瀏覽器原生 Date 物件高度相容）
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        document.getElementById('dateInput').value = yyyy + '-' + mm + '-' + dd;
-        
-        renderRecords();
+    <!-- 側邊選單遮罩背景 -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW註冊失敗', err));
-        }
-    };
-
-    // ➕ 新增記帳紀錄
-    function addRecord() {
-        const dateVal = document.getElementById('dateInput').value;
-        const amount = parseFloat(document.getElementById('amountInput').value);
-        const mainCate = document.getElementById('mainCateInput').value;
-        const note = document.getElementById('noteInput').value.trim();
-
-        if (!dateVal) return alert('請選擇日期！');
-        if (!amount || amount <= 0) return alert('請輸入正確的金額！');
-
-        const newRecord = {
-            id: Date.now(),
-            date: dateVal,
-            mainCate: mainCate,
-            amount: amount,
-            note: note
-        };
-
-        records.unshift(newRecord);
-        saveAndRender();
-
-        document.getElementById('amountInput').value = '';
-        document.getElementById('noteInput').value = '';
-    }
-
-    // ❌ 刪除記帳紀錄
-    function deleteRecord(id) {
-        if (confirm('確定要刪除這筆記帳紀錄嗎？')) {
-            records = records.filter(record => record.id !== id);
-            saveAndRender();
-        }
-    }
-
-    function saveAndRender() {
-        localStorage.setItem('money_records', JSON.stringify(records));
-        renderRecords();
-    }
-
-    // 🧮 採用高相容原生 Date 物件進行圓環圖動態分析
-    function updateCharts() {
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-
-        const monthSums = { "飲食": 0, "交通": 0, "娛樂": 0, "購物": 0, "住家": 0 };
-        const yearSums = { "飲食": 0, "交通": 0, "娛樂": 0, "購物": 0, "住家": 0 };
-
-        let hasMonth = false;
-        let hasYear = false;
-
-        records.forEach(r => {
-            if (!r.date) return;
+    <!-- 側邊選單 -->
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3>選單功能</h3>
+            <button class="close-btn" onclick="toggleSidebar()">✕</button>
+        </div>
+        <div class="sidebar-menu">
+            <button class="menu-item" onclick="exportCSV(); toggleSidebar();">
+                📤 匯出 CSV 備份
+            </button>
+            <button class="menu-item" onclick="importCSV(); toggleSidebar();">
+                📥 匯入備份檔案
+            </button>
             
-            // 💡 安全修復：將儲存的日期字串統一轉為標準格式，完美相容斜線與橫線
-            const recordDate = new Date(r.date.replace(/\//g, '-')); 
-            if (isNaN(recordDate.getTime())) return; 
+            <hr class="divider-dashed" style="margin: 8px 0;">
 
-            const rYear = recordDate.getFullYear();
-            const rMonth = recordDate.getMonth();
+            <div class="menu-setting-group">
+                <label>🖼️ 設定背景圖片</label>
+                <input type="file" id="bgImageInput" accept="image/*" onchange="handleBgImageUpload(event)">
+                <button class="menu-item-sub" onclick="resetBgImage()">重置背景圖片</button>
+            </div>
 
-            if (rYear === currentYear) {
-                if (yearSums[r.mainCate] !== undefined) {
-                    yearSums[r.mainCate] += r.amount;
-                    hasYear = true;
-                }
-                if (rMonth === currentMonth) {
-                    if (monthSums[r.mainCate] !== undefined) {
-                        monthSums[r.mainCate] += r.amount;
-                        hasMonth = true;
-                    }
-                }
-            }
-        });
+            <div class="menu-setting-group">
+                <label>🎨 調整面板顏色與透明度</label>
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+                    <input type="color" id="cardColorPicker" value="#ffffff" onchange="handleCardColorChange()" style="width: 40px; height: 36px; border: none; cursor: pointer; background: none;">
+                    <input type="range" id="cardOpacityRange" min="0.2" max="1" step="0.05" value="0.92" oninput="handleCardColorChange()" style="flex: 1;">
+                </div>
+                <button class="menu-item-sub" onclick="resetCardColor()">重置面板顏色</button>
+            </div>
+        </div>
+    </div>
 
-        const labels = Object.keys(categoryColors);
-        const colors = Object.values(categoryColors);
-        const mData = labels.map(c => monthSums[c]);
-        const yData = labels.map(c => yearSums[c]);
+    <div class="container">
+        <!-- 收入/支出切換與輸入區域 -->
+        <div class="card">
+            <div class="type-switch">
+                <button id="typeExpenseBtn" class="type-btn active expense" onclick="switchRecordType('支出')">支出</button>
+                <button id="typeIncomeBtn" class="type-btn income" onclick="switchRecordType('收入')">收入</button>
+            </div>
 
-        // 🗓️ 繪製當月圓環
-        document.getElementById('mTitle').innerText = '🗓️ 當月消費比例' + (hasMonth ? '' : ' (暫無資料)');
-        if (monthChartInstance) monthChartInstance.destroy();
-        if (hasMonth) {
-            const ctxM = document.getElementById('monthChart').getContext('2d');
-            monthChartInstance = new Chart(ctxM, {
-                type: 'doughnut',
-                data: { labels: labels, datasets: [{ data: mData, backgroundColor: colors, borderWidth: 2 }] },
-                options: {
-                    plugins: { legend: { display: false } },
-                    cutout: '65%',
-                    // 💡 官方標準點擊事件，配合外層防翻譯，絕不當機！
-                    onClick: (e, elements) => {
-                        if (elements && elements.length > 0) {
-                            const activeIndex = elements[0].index;
-                            filterByChart('month', labels[activeIndex]);
-                        }
-                    }
-                }
-            });
-        }
+            <div class="form-group">
+                <label>日期</label>
+                <input type="date" id="dateInput">
+            </div>
 
-        // 🌟 繪製當年圓環
-        document.getElementById('yTitle').innerText = '🌟 當年消費比例' + (hasYear ? '' : ' (暫無資料)');
-        if (yearChartInstance) yearChartInstance.destroy();
-        if (hasYear) {
-            const ctxY = document.getElementById('yearChart').getContext('2d');
-            yearChartInstance = new Chart(ctxY, {
-                type: 'doughnut',
-                data: { labels: labels, datasets: [{ data: yData, backgroundColor: colors, borderWidth: 2 }] },
-                options: {
-                    plugins: { legend: { display: false } },
-                    cutout: '65%',
-                    onClick: (e, elements) => {
-                        if (elements && elements.length > 0) {
-                            const activeIndex = elements[0].index;
-                            filterByChart('year', labels[activeIndex]);
-                        }
-                    }
-                }
-            });
-        }
-    }
+            <div class="form-group">
+                <label>選擇分類</label>
+                <button id="cateTrigger" class="cate-trigger" onclick="openModal()">飲食 > 早餐</button>
+            </div>
 
-    // 🔍 圓環點擊過濾明細
-    function filterByChart(type, category) {
-        currentFilterType = type;
-        currentFilterCategory = category;
-        renderRecords();
-    }
+            <div class="form-group">
+                <label>金額</label>
+                <input type="number" id="amountInput" placeholder="請輸入金額" pattern="\d*">
+            </div>
 
-    function clearFilter() {
-        currentFilterType = null;
-        currentFilterCategory = null;
-        renderRecords();
-    }
+            <div class="form-group">
+                <label>備註</label>
+                <input type="text" id="noteInput" placeholder="填寫備註 (選填)">
+            </div>
 
-    // 📋 歷史明細動態生成
-    function renderRecords() {
-        updateCharts();
+            <button class="btn-submit" onclick="addRecord()">儲存紀錄</button>
+        </div>
 
-        const listDiv = document.getElementById('recordList');
-        const badgeDiv = document.getElementById('badgeBox');
-        const titleEl = document.getElementById('listTitle');
-        
-        listDiv.innerHTML = '';
-        badgeDiv.innerHTML = '';
+        <!-- 財務總覽卡片 -->
+        <div class="card">
+            <h3 class="card-title">📊 財務總覽</h3>
+            <div class="summary-list">
+                <div class="summary-row">
+                    <span>當月收入</span>
+                    <span id="dashMonthIncome" class="amt-income">$0</span>
+                </div>
+                <div class="summary-row">
+                    <span>當月支出</span>
+                    <span id="dashMonthExpense" class="amt-expense">$0</span>
+                </div>
+                <div class="summary-row">
+                    <span>當月結餘</span>
+                    <span id="dashMonthBalance" class="amt-income">$0</span>
+                </div>
+                <hr class="divider-dashed">
+                <div class="summary-row">
+                    <span>當年收入</span>
+                    <span id="dashYearIncome" class="amt-income">$0</span>
+                </div>
+                <div class="summary-row">
+                    <span>當年支出</span>
+                    <span id="dashYearExpense" class="amt-expense">$0</span>
+                </div>
+                <div class="summary-row bold">
+                    <span>當年結餘</span>
+                    <span id="dashYearBalance" class="amt-income">$0</span>
+                </div>
+            </div>
+        </div>
 
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
+        <!-- 當月圖表區域 -->
+        <div class="card">
+            <h3 id="mTitle" class="card-title-center">🗓️ 當月支出比例</h3>
+            <div class="chart-container">
+                <div id="monthChartWrapper" class="donut-wrapper"></div>
+                <div id="monthLegend" class="legend-box-bottom"></div>
+            </div>
+        </div>
 
-        let filtered = records;
-        if (currentFilterType === 'month') {
-            titleEl.innerText = '歷史明細 (當月篩選)';
-            badgeDiv.innerHTML = '<span class="filter-badge" onclick="clearFilter()">' + currentFilterCategory + ' ❌ 清除篩選</span>';
-            filtered = records.filter(r => {
-                const rd = new Date(r.date.replace(/\//g, '-'));
-                return !isNaN(rd.getTime()) && rd.getFullYear() === currentYear && rd.getMonth() === currentMonth && r.mainCate === currentFilterCategory;
-            });
-        } else if (currentFilterType === 'year') {
-            titleEl.innerText = '歷史明細 (年度篩選)';
-            badgeDiv.innerHTML = '<span class="filter-badge" onclick="clearFilter()">' + currentFilterCategory + ' ❌ 清除篩選</span>';
-            filtered = records.filter(r => {
-                const rd = new Date(r.date.replace(/\//g, '-'));
-                return !isNaN(rd.getTime()) && rd.getFullYear() === currentYear && r.mainCate === currentFilterCategory;
-            });
-        } else {
-            titleEl.innerText = '歷史明細 (全部)';
-        }
+        <!-- 當年圖表區域 -->
+        <div class="card">
+            <h3 id="yTitle" class="card-title-center">🌟 當年支出比例</h3>
+            <div class="chart-container">
+                <div id="yearChartWrapper" class="donut-wrapper"></div>
+                <div id="yearLegend" class="legend-box-bottom"></div>
+            </div>
+        </div>
 
-        if (filtered.length === 0) {
-            listDiv.innerHTML = '<div style="text-align:center;color:#999;padding:20px;font-size:14px;">暫無符合的明細</div>';
-            return;
-        }
+        <!-- 歷史明細區域 -->
+        <div class="card">
+            <div class="history-header">
+                <h3 id="listTitle">歷史明細</h3>
+                <button id="toggleCollapseBtn" class="btn-toggle" onclick="toggleHistoryCollapse()">收斂 ▲</button>
+            </div>
 
-        filtered.forEach(r => {
-            const item = document.createElement('div');
-            item.className = 'record-item';
-            item.style.borderLeftColor = categoryColors[r.mainCate] || '#0071e3';
-            
-            let displayContent = '<strong>' + r.mainCate + '</strong>';
-            if (r.note) {
-                displayContent += ' (' + r.note + ')';
-            }
+            <div class="range-filters">
+                <button id="btnRangeMonth" class="btn-range active" onclick="setHistoryRange('month')">當月</button>
+                <button id="btnRangeYear" class="btn-range" onclick="setHistoryRange('year')">當年</button>
+                <button id="btnRangeAll" class="btn-range" onclick="setHistoryRange('all')">全部</button>
+            </div>
 
-            item.innerHTML = '<div class="record-info">' +
-                '<div class="record-date">' + r.date + '</div>' +
-                '<div style="font-size:15px; margin-top:2px;">' + displayContent + '</div>' +
-                '</div>' +
-                '<div style="display:flex; align-items:center; gap:12px;">' +
-                '<span style="font-weight:700; font-size:16px;">$' + r.amount.toLocaleString() + '</span>' +
-                '<button class="btn-delete" onclick="deleteRecord(' + r.id + ')">刪除</button>' +
-                '</div>';
-                
-            listDiv.appendChild(item);
-        });
-    }
-</script>
+            <div id="badgeBox"></div>
+            <div id="recordList"></div>
+        </div>
+    </div>
+
+    <!-- 分類選擇 Modal Pop-up -->
+    <div id="cateModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>選擇分類</h3>
+                <button class="close-btn" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="cate-column">
+                    <div class="cate-title">主分類</div>
+                    <ul id="mainCateList" class="cate-list"></ul>
+                </div>
+                <div class="cate-column">
+                    <div class="sub-cate-wrapper">
+                        <div class="cate-title">子分類</div>
+                        <ul id="subCateList" class="cate-list"></ul>
+                        <button class="btn-add-custom" onclick="addCustomSubCate()">
+                            <span class="plus-icon">+</span> 新增分類
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
