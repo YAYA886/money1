@@ -452,22 +452,26 @@ function renderHistory() {
         item.className = 'record-item';
         item.style.borderLeftColor = r.type === '收入' ? '#34c759' : '#ff3b30';
         
-        // 取得時間字串（若舊資料無 time 屬性則透過 timestamp 自動補算）
-        const displayTime = r.time || getTimeFromTimestamp(r.id);
+        // 取得時間字串（若無 time 欄位則從 id 戳記反推 HH:mm:ss）
+        let timeStr = r.time;
+        if (!timeStr) {
+            const dateObj = new Date(r.id);
+            if (!isNaN(dateObj.getTime())) {
+                const hh = String(dateObj.getHours()).padStart(2, '0');
+                const mm = String(dateObj.getMinutes()).padStart(2, '0');
+                const ss = String(dateObj.getSeconds()).padStart(2, '0');
+                timeStr = `${hh}:${mm}:${ss}`;
+            } else {
+                timeStr = '';
+            }
+        }
 
         item.innerHTML = `
-            <div class="record-info">
-                <div class="record-title">
-                    <strong>${r.category}</strong> 
-                    ${r.note ? `<span style="opacity:0.75; font-size:13px; font-weight:normal;">(${r.note})</span>` : ''}
-                </div>
-                <!-- 強制 flex-direction: column 確保日期與時間分兩行 -->
-                <div style="display: flex; flex-direction: column; align-items: flex-start;">
-                    <span class="record-date-text" style="font-size:12px; color:#86868b;">${r.date}</span>
-                    <span class="record-date-text" style="font-size:12px; color:#86868b;">${displayTime}</span>
-                </div>
+            <div>
+                <strong>${r.category}</strong> ${r.note ? `<span style="opacity:0.75; font-size:13px;">(${r.note})</span>` : ''}
+                <div class="record-date">${r.date}${timeStr ? `<br>${timeStr}` : ''}</div>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div>
                 <span class="record-amount ${r.type === '收入' ? 'amt-income' : 'amt-expense'}">
                     ${r.type === '收入' ? '+' : '-'}$${r.amount.toLocaleString()}
                 </span>
@@ -477,7 +481,6 @@ function renderHistory() {
         listEl.appendChild(item);
     });
 }
-
 function setHistoryRange(range) {
     historyRange = range;
     selectedCategoryFilter = range === 'all' ? null : selectedCategoryFilter;
