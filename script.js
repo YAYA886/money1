@@ -33,6 +33,15 @@ const chartColors = [
     '#FF9F40', '#E7E9ED', '#71B37C', '#EC644B', '#1E8BC3'
 ];
 
+// 取得當前時間 HH:mm:ss 格式
+function getCurrentTimeString() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+}
+
 // ==========================================
 // 2. 頁面初始化與自定義外觀載入
 // ==========================================
@@ -57,6 +66,8 @@ function handleUrlParams() {
     const mainCate = urlParams.get('main') || '飲食';
     const subCate = urlParams.get('sub') || '其他';
     const type = urlParams.get('type') || '支出';
+    // 若網址沒帶時間參數，自動抓取進入網頁（通知抵達）的時間
+    const timeVal = urlParams.get('time') || getCurrentTimeString();
 
     if (isNaN(amount) || amount <= 0) return;
 
@@ -84,6 +95,7 @@ function handleUrlParams() {
         id: Date.now(),
         type: type,
         date: dateVal,
+        time: timeVal, // 紀錄通知時間
         mainCategory: mainCate,
         subCategory: subCate,
         category: subCate ? `${mainCate} > ${subCate}` : mainCate,
@@ -99,7 +111,7 @@ function handleUrlParams() {
 }
 
 // ==========================================
-// 3. 側邊選單控制與外觀自定義（重點修正：針對紅圈標籤與圖例字體顏色）
+// 3. 側邊選單控制與外觀自定義
 // ==========================================
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -167,15 +179,14 @@ function applyCardStyle(rgbStr, opacity) {
     const luminance = getLuminance(r, g, b);
 
     if (luminance < 140) {
-        // 深色面板：標籤與圖例用高亮白
         document.documentElement.style.setProperty('--label-color', '#ffffff');
         document.documentElement.style.setProperty('--legend-text-color', '#ffffff');
     } else {
-        // 淺色面板：標籤與圖例改為純黑色，確保清晰可見
         document.documentElement.style.setProperty('--label-color', '#000000');
         document.documentElement.style.setProperty('--legend-text-color', '#000000');
     }
 }
+
 function resetCardColor() {
     localStorage.removeItem('accounting_card_style');
     document.getElementById('cardColorPicker').value = '#ffffff';
@@ -241,6 +252,7 @@ function addRecord() {
         id: Date.now(),
         type: currentType,
         date: date,
+        time: getCurrentTimeString(), // 手動儲存時紀錄當前時間
         mainCategory: selectedMainCate,
         subCategory: selectedSubCate,
         category: selectedSubCate ? `${selectedMainCate} > ${selectedSubCate}` : selectedMainCate,
@@ -270,7 +282,7 @@ function saveRecords() {
 }
 
 // ==========================================
-// 5. 財務數據計算與圖表繪製（含圓環圖圖例字體顏色修正）
+// 5. 財務數據計算與圖表繪製
 // ==========================================
 function updateUI() {
     renderSummary();
@@ -376,7 +388,6 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 
         const legendItem = document.createElement('div');
         legendItem.className = 'legend-item';
-        // 使用 CSS 變數控制圖例文字顏色
         legendItem.style.color = 'var(--legend-text-color, #1d1d1f)';
         legendItem.innerHTML = `
             <span class="legend-color" style="background-color: ${color};"></span>
@@ -402,7 +413,7 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 }
 
 // ==========================================
-// 6. 歷史明細渲染與篩選
+// 6. 歷史明細渲染與篩選（新增顯示時間邏輯）
 // ==========================================
 function renderHistory() {
     const listEl = document.getElementById('recordList');
@@ -451,10 +462,14 @@ function renderHistory() {
         const item = document.createElement('div');
         item.className = 'record-item';
         item.style.borderLeftColor = r.type === '收入' ? '#34c759' : '#ff3b30';
+        
+        // 顯示日期與時間，如果歷史舊紀錄無時間則僅顯示日期
+        const displayDateTime = r.time ? `${r.date} ${r.time}` : r.date;
+
         item.innerHTML = `
             <div>
                 <strong>${r.category}</strong> ${r.note ? `<span style="opacity:0.75; font-size:13px;">(${r.note})</span>` : ''}
-                <div class="record-date">${r.date}</div>
+                <div class="record-date">${displayDateTime}</div>
             </div>
             <div>
                 <span class="record-amount ${r.type === '收入' ? 'amt-income' : 'amt-expense'}">
@@ -601,9 +616,10 @@ function exportCSV() {
         return;
     }
 
-    let csvContent = '\uFEFF日期,類型,分類,金額,備註\n';
+    let csvContent = '\uFEFF日期時間,類型,分類,金額,備註\n';
     records.forEach(r => {
-        csvContent += `"${r.date}","${r.type}","${r.category}",${r.amount},"${r.note || ''}"\n`;
+        const dt = r.time ? `${r.date} ${r.time}` : r.date;
+        csvContent += `"${dt}","${r.type}","${r.category}",${r.amount},"${r.note || ''}"\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -632,14 +648,19 @@ function importCSV() {
 
                 const cols = line.split(',').map(c => c.replace(/^"|"$/g, ''));
                 if (cols.length >= 4) {
-                    const [date, type, category, amount, note] = cols;
+                    const [dateTimeStr, type, category, amount, note] = cols;
                     const parsedAmount = parseFloat(amount);
 
-                    if (date && !isNaN(parsedAmount)) {
+                    if (dateTimeStr && !isNaN(parsedAmount)) {
+                        const dtParts = dateTimeStr.split(' ');
+                        const datePart = dtParts[0];
+                        const timePart = dtParts[1] || '';
+
                         const cateParts = category ? category.split(' > ') : ['其他'];
                         records.push({
                             id: Date.now() + i,
-                            date: date,
+                            date: datePart,
+                            time: timePart,
                             type: type || '支出',
                             mainCategory: cateParts[0],
                             subCategory: cateParts[1] || '',
