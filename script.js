@@ -420,7 +420,7 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 }
 
 // ==========================================
-// 6. 歷史明細渲染與篩選（強效解析時間）
+// 6. 歷史明細渲染（第一行為年月日，第二行為獨立時間）
 // ==========================================
 function renderHistory() {
     const listEl = document.getElementById('recordList');
@@ -470,16 +470,19 @@ function renderHistory() {
         item.className = 'record-item';
         item.style.borderLeftColor = r.type === '收入' ? '#34c759' : '#ff3b30';
         
-        // 抓取時間：若無 time 欄位，自動從建立的戳記 id 反推時間
+        // 抓取時間，若舊資料沒 time 欄位則自動從 timestamp 補算
         const displayTime = r.time || getTimeFromTimestamp(r.id);
 
         item.innerHTML = `
-            <div>
-                <strong>${r.category}</strong> ${r.note ? `<span style="opacity:0.75; font-size:13px;">(${r.note})</span>` : ''}
-                <div class="record-date">${r.date}</div>
-                <div class="record-date" style="margin-top: 2px; color: #666;">${displayTime}</div>
+            <div class="record-info">
+                <div class="record-title">
+                    <strong>${r.category}</strong> 
+                    ${r.note ? `<span style="opacity:0.75; font-size:13px; font-weight:normal;">(${r.note})</span>` : ''}
+                </div>
+                <div class="record-date-text">${r.date}</div>
+                <div class="record-date-text">${displayTime}</div>
             </div>
-            <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
                 <span class="record-amount ${r.type === '收入' ? 'amt-income' : 'amt-expense'}">
                     ${r.type === '收入' ? '+' : '-'}$${r.amount.toLocaleString()}
                 </span>
