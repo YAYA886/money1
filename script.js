@@ -87,6 +87,7 @@ function handleUrlParams() {
     const dd = String(today.getDate()).padStart(2, '0');
     const dateVal = `${yyyy}-${mm}-${dd}`;
 
+    // 防重複機制：3 分鐘內相同金額與備註不重複寫入
     const isDuplicate = records.some(r => {
         const isSameAmount = r.amount === amount;
         const isSameNote = r.note === note;
@@ -95,6 +96,7 @@ function handleUrlParams() {
     });
 
     if (isDuplicate) {
+        console.log('🛡️ 偵測到重複發送的通知，已自動過濾。');
         window.history.replaceState({}, document.title, window.location.pathname);
         return;
     }
@@ -114,6 +116,7 @@ function handleUrlParams() {
     records.unshift(newRecord);
     saveRecords();
 
+    // 網址淨化
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 
@@ -186,9 +189,11 @@ function applyCardStyle(rgbStr, opacity) {
     const luminance = getLuminance(r, g, b);
 
     if (luminance < 140) {
+        // 深色面板：標籤與圖例用高亮白
         document.documentElement.style.setProperty('--label-color', '#ffffff');
         document.documentElement.style.setProperty('--legend-text-color', '#ffffff');
     } else {
+        // 淺色面板：標籤與圖例改為純黑色，確保清晰可見
         document.documentElement.style.setProperty('--label-color', '#000000');
         document.documentElement.style.setProperty('--legend-text-color', '#000000');
     }
@@ -420,7 +425,7 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 }
 
 // ==========================================
-// 6. 歷史明細渲染（針對日期與時間單獨進行行內強制垂直分行）
+// 6. 歷史明細渲染與篩選（僅在此處針對日期與時間做行內垂直排列）
 // ==========================================
 function renderHistory() {
     const listEl = document.getElementById('recordList');
@@ -479,8 +484,8 @@ function renderHistory() {
                     ${r.note ? `<span style="opacity:0.75; font-size:13px; font-weight:normal;">(${r.note})</span>` : ''}
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: flex-start;">
-                    <span class="record-date-text">${r.date}</span>
-                    <span class="record-date-text">${displayTime}</span>
+                    <span class="record-date-text" style="font-size:12px; color:#86868b;">${r.date}</span>
+                    <span class="record-date-text" style="font-size:12px; color:#86868b;">${displayTime}</span>
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
