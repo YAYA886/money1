@@ -4,144 +4,433 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>記帳本</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --card-rgb: 255, 255, 255;
+            --card-opacity: 0.92;
+            --card-bg: rgba(var(--card-rgb), var(--card-opacity));
+            --label-color: #000000;
+            --legend-text-color: #000000;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f2f2f7;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: #1d1d1f;
+            padding-bottom: 40px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .menu-btn {
+            font-size: 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: var(--label-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* 類型切換按鈕 */
+        .type-toggle {
+            display: flex;
+            background: #e3e3e8;
+            border-radius: 8px;
+            padding: 2px;
+            margin-bottom: 15px;
+        }
+
+        .type-toggle button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .type-toggle button.active {
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 表單控制項 */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--label-color);
+            margin-bottom: 4px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 8px;
+            font-size: 15px;
+            background: #fff;
+            outline: none;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: #007aff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        /* 儀表板總計 */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            text-align: center;
+        }
+
+        .dash-item span {
+            display: block;
+            font-size: 12px;
+            color: var(--label-color);
+            opacity: 0.8;
+        }
+
+        .dash-item strong {
+            font-size: 15px;
+            color: var(--label-color);
+        }
+
+        /* 圖表區塊 */
+        .chart-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+        }
+
+        .chart-wrapper {
+            width: 120px;
+            height: 120px;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* 歷史明細樣式 */
+        .range-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .range-selector button {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #d1d1d6;
+            background: #fff;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .range-selector button.active {
+            background: #007aff;
+            color: #fff;
+            border-color: #007aff;
+        }
+
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            background: #fff;
+            border-radius: 10px;
+            border-left: 5px solid #ff3b30;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .record-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+
+        .record-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .record-date-text {
+            font-size: 12px;
+            color: #86868b;
+            line-height: 1.2;
+        }
+
+        .record-amount {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .amt-expense { color: #1d1d1f; }
+        .amt-income { color: #34c759; }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: #ff3b30;
+            font-size: 13px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+
+        /* 側邊欄 Sidebar */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            z-index: 200;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0; right: -280px; width: 280px; height: 100%;
+            background: #fff;
+            z-index: 201;
+            transition: right 0.3s ease;
+            padding: 20px;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar.active { right: 0; }
+
+        .sidebar h3 { margin-bottom: 15px; font-size: 18px; }
+        .sidebar-item { margin-bottom: 15px; }
+
+        /* Modal 分類選擇 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 300;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .cate-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .cate-list { list-style: none; }
+        .cate-item {
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        .cate-item.active { background: #e3e3e8; font-weight: 600; }
+
+        .filter-badge {
+            display: inline-block;
+            background: #007aff;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- 頂端導覽列 -->
-    <header class="app-header">
+    <header>
         <h1>記帳本</h1>
-        <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
     </header>
 
-    <!-- 側邊選單遮罩背景 -->
-    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
-
-    <!-- 側邊選單 -->
-    <div id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <h3>選單功能</h3>
-            <button class="close-btn" onclick="toggleSidebar()">✕</button>
-        </div>
-        <div class="sidebar-menu">
-            <button class="menu-item" onclick="exportCSV(); toggleSidebar();">
-                📤 匯出 CSV 備份
-            </button>
-            <button class="menu-item" onclick="importCSV(); toggleSidebar();">
-                📥 匯入備份檔案
-            </button>
-            
-            <hr class="divider-dashed" style="margin: 8px 0;">
-
-            <div class="menu-setting-group">
-                <label>🖼️ 設定背景圖片</label>
-                <input type="file" id="bgImageInput" accept="image/*" onchange="handleBgImageUpload(event)">
-                <button class="menu-item-sub" onclick="resetBgImage()">重置背景圖片</button>
-            </div>
-
-            <div class="menu-setting-group">
-                <label>🎨 調整面板顏色與透明度</label>
-                <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-                    <input type="color" id="cardColorPicker" value="#ffffff" onchange="handleCardColorChange()" style="width: 40px; height: 36px; border: none; cursor: pointer; background: none;">
-                    <input type="range" id="cardOpacityRange" min="0.2" max="1" step="0.05" value="0.92" oninput="handleCardColorChange()" style="flex: 1;">
-                </div>
-                <button class="menu-item-sub" onclick="resetCardColor()">重置面板顏色</button>
-            </div>
-        </div>
-    </div>
-
     <div class="container">
-        <!-- 收入/支出切換與輸入區域 -->
+        <!-- 1. 新增紀錄面板 -->
         <div class="card">
-            <div class="type-switch">
-                <button id="typeExpenseBtn" class="type-btn active expense" onclick="switchRecordType('支出')">支出</button>
-                <button id="typeIncomeBtn" class="type-btn income" onclick="switchRecordType('收入')">收入</button>
+            <div class="type-toggle">
+                <button id="typeExpenseBtn" class="active" onclick="switchRecordType('支出')">支出</button>
+                <button id="typeIncomeBtn" onclick="switchRecordType('收入')">收入</button>
             </div>
 
             <div class="form-group">
                 <label>日期</label>
-                <input type="date" id="dateInput">
+                <input type="date" id="dateInput" class="form-control">
             </div>
 
             <div class="form-group">
-                <label>選擇分類</label>
-                <button id="cateTrigger" class="cate-trigger" onclick="openModal()">飲食 > 早餐</button>
+                <label>分類</label>
+                <button id="cateTrigger" class="form-control" style="text-align: left;" onclick="openModal()">飲食 > 食材</button>
             </div>
 
             <div class="form-group">
                 <label>金額</label>
-                <input type="number" id="amountInput" placeholder="請輸入金額" pattern="\d*">
+                <input type="number" id="amountInput" class="form-control" placeholder="0" inputmode="decimal">
             </div>
 
             <div class="form-group">
                 <label>備註</label>
-                <input type="text" id="noteInput" placeholder="填寫備註 (選填)">
+                <input type="text" id="noteInput" class="form-control" placeholder="選填">
             </div>
 
-            <button class="btn-submit" onclick="addRecord()">儲存紀錄</button>
+            <button class="btn-primary" onclick="addRecord()">新增紀錄</button>
         </div>
 
-        <!-- 財務總覽卡片 -->
+        <!-- 2. 當月與當年生計儀表板 -->
         <div class="card">
-            <h3 class="card-title">📊 財務總覽</h3>
-            <div class="summary-list">
-                <div class="summary-row">
-                    <span>當月收入</span>
-                    <span id="dashMonthIncome" class="amt-income">$0</span>
+            <h2>當月概況</h2>
+            <div class="dash-grid">
+                <div class="dash-item">
+                    <span>收入</span>
+                    <strong id="dashMonthIncome" style="color:#34c759;">$0</strong>
                 </div>
-                <div class="summary-row">
-                    <span>當月支出</span>
-                    <span id="dashMonthExpense" class="amt-expense">$0</span>
+                <div class="dash-item">
+                    <span>支出</span>
+                    <strong id="dashMonthExpense" style="color:#ff3b30;">$0</strong>
                 </div>
-                <div class="summary-row">
-                    <span>當月結餘</span>
-                    <span id="dashMonthBalance" class="amt-income">$0</span>
+                <div class="dash-item">
+                    <span>結餘</span>
+                    <strong id="dashMonthBalance">$0</strong>
                 </div>
-                <hr class="divider-dashed">
-                <div class="summary-row">
-                    <span>當年收入</span>
-                    <span id="dashYearIncome" class="amt-income">$0</span>
-                </div>
-                <div class="summary-row">
-                    <span>當年支出</span>
-                    <span id="dashYearExpense" class="amt-expense">$0</span>
-                </div>
-                <div class="summary-row bold">
-                    <span>當年結餘</span>
-                    <span id="dashYearBalance" class="amt-income">$0</span>
-                </div>
+            </div>
+            <div class="chart-container" style="margin-top: 15px;">
+                <div id="monthChartWrapper" class="chart-wrapper"></div>
+                <div id="monthLegend" class="chart-legend"></div>
             </div>
         </div>
 
-        <!-- 當月圖表區域 -->
         <div class="card">
-            <h3 id="mTitle" class="card-title-center">🗓️ 當月支出比例</h3>
-            <div class="chart-container">
-                <div id="monthChartWrapper" class="donut-wrapper"></div>
-                <div id="monthLegend" class="legend-box-bottom"></div>
+            <h2>當年概況</h2>
+            <div class="dash-grid">
+                <div class="dash-item">
+                    <span>收入</span>
+                    <strong id="dashYearIncome" style="color:#34c759;">$0</strong>
+                </div>
+                <div class="dash-item">
+                    <span>支出</span>
+                    <strong id="dashYearExpense" style="color:#ff3b30;">$0</strong>
+                </div>
+                <div class="dash-item">
+                    <span>結餘</span>
+                    <strong id="dashYearBalance">$0</strong>
+                </div>
+            </div>
+            <div class="chart-container" style="margin-top: 15px;">
+                <div id="yearChartWrapper" class="chart-wrapper"></div>
+                <div id="yearLegend" class="chart-legend"></div>
             </div>
         </div>
 
-        <!-- 當年圖表區域 -->
+        <!-- 3. 歷史明細列表 -->
         <div class="card">
-            <h3 id="yTitle" class="card-title-center">🌟 當年支出比例</h3>
-            <div class="chart-container">
-                <div id="yearChartWrapper" class="donut-wrapper"></div>
-                <div id="yearLegend" class="legend-box-bottom"></div>
-            </div>
-        </div>
+            <h2 id="listTitle">
+                歷史明細 
+                <span id="toggleCollapseBtn" style="font-size: 13px; color: #007aff; cursor: pointer;" onclick="toggleHistoryCollapse()">收斂 ▲</span>
+            </h2>
 
-        <!-- 歷史明細區域 -->
-        <div class="card">
-            <div class="history-header">
-                <h3 id="listTitle">歷史明細</h3>
-                <button id="toggleCollapseBtn" class="btn-toggle" onclick="toggleHistoryCollapse()">收斂 ▲</button>
-            </div>
-
-            <div class="range-filters">
-                <button id="btnRangeMonth" class="btn-range active" onclick="setHistoryRange('month')">當月</button>
-                <button id="btnRangeYear" class="btn-range" onclick="setHistoryRange('year')">當年</button>
-                <button id="btnRangeAll" class="btn-range" onclick="setHistoryRange('all')">全部</button>
+            <div class="range-selector">
+                <button id="btnRangeMonth" class="active" onclick="setHistoryRange('month')">當月</button>
+                <button id="btnRangeYear" onclick="setHistoryRange('year')">當年</button>
+                <button id="btnRangeAll" onclick="setHistoryRange('all')">全部</button>
             </div>
 
             <div id="badgeBox"></div>
@@ -149,38 +438,54 @@
         </div>
     </div>
 
-    <!-- 分類選擇 Modal Pop-up -->
-    <div id="cateModal" class="modal-overlay">
+    <!-- 側邊選單 -->
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div id="sidebar" class="sidebar">
+        <h3>設定與客製化</h3>
+        
+        <div class="sidebar-item">
+            <label style="font-size: 13px; display:block; margin-bottom: 5px;">卡片顏色</label>
+            <input type="color" id="cardColorPicker" value="#ffffff" onchange="handleCardColorChange()" style="width:100%; height:35px; border:none; cursor:pointer;">
+        </div>
+
+        <div class="sidebar-item">
+            <label style="font-size: 13px; display:block; margin-bottom: 5px;">卡片透明度</label>
+            <input type="range" id="cardOpacityRange" min="0.2" max="1" step="0.05" value="0.92" oninput="handleCardColorChange()" style="width:100%;">
+        </div>
+
+        <button class="btn-primary" onclick="resetCardColor()" style="background:#8e8e93; margin-bottom: 15px;">重置面板顏色</button>
+
+        <div class="sidebar-item">
+            <label style="font-size: 13px; display:block; margin-bottom: 5px;">背景圖片</label>
+            <input type="file" id="bgImageInput" accept="image/*" onchange="handleBgImageUpload(event)" style="width:100%; font-size:12px;">
+        </div>
+        <button class="btn-primary" onclick="resetBgImage()" style="background:#8e8e93; margin-bottom: 20px;">重置背景圖</button>
+
+        <hr style="margin-bottom: 20px; border: none; border-top: 1px solid #e3e3e8;">
+
+        <button class="btn-primary" onclick="exportCSV()" style="background:#34c759; margin-bottom: 10px;">匯出 CSV 備份</button>
+        <button class="btn-primary" onclick="importCSV()" style="background:#5856d6;">匯入 CSV 備份</button>
+    </div>
+
+    <!-- 分類選擇彈窗 Modal -->
+    <div id="cateModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3>選擇分類</h3>
-                <button class="close-btn" onclick="closeModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="cate-column">
-                    <div class="cate-title">主分類</div>
-                    <ul id="mainCateList" class="cate-list"></ul>
+            <h3 style="margin-bottom: 10px;">選擇分類</h3>
+            <div class="cate-grid">
+                <div>
+                    <strong style="font-size: 13px; color:#86868b;">主分類</strong>
+                    <ul id="mainCateList" class="cate-list" style="margin-top: 5px;"></ul>
                 </div>
-                <div class="cate-column">
-                    <div class="sub-cate-wrapper">
-                        <div class="cate-title">子分類</div>
-                        <ul id="subCateList" class="cate-list"></ul>
-                        <button class="btn-add-custom" onclick="addCustomSubCate()">
-                            <span class="plus-icon">+</span> 新增分類
-                        </button>
-                    </div>
+                <div>
+                    <strong style="font-size: 13px; color:#86868b;">子分類</strong>
+                    <ul id="subCateList" class="cate-list" style="margin-top: 5px;"></ul>
                 </div>
             </div>
+            <button class="btn-primary" onclick="addCustomSubCate()" style="background:#5856d6; margin-bottom: 10px;">+ 新增子分類</button>
+            <button class="btn-primary" onclick="closeModal()" style="background:#8e8e93;">完成</button>
         </div>
     </div>
 
     <script src="script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
-        }
-    </script>
 </body>
 </html>

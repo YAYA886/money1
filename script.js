@@ -33,6 +33,26 @@ const chartColors = [
     '#FF9F40', '#E7E9ED', '#71B37C', '#EC644B', '#1E8BC3'
 ];
 
+// 取得當前時間 HH:mm:ss 格式
+function getCurrentTimeString() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+}
+
+// 根據戳記 id 補算時間
+function getTimeFromTimestamp(timestamp) {
+    if (!timestamp) return getCurrentTimeString();
+    const dateObj = new Date(timestamp);
+    if (isNaN(dateObj.getTime())) return getCurrentTimeString();
+    const hh = String(dateObj.getHours()).padStart(2, '0');
+    const mm = String(dateObj.getMinutes()).padStart(2, '0');
+    const ss = String(dateObj.getSeconds()).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+}
+
 // ==========================================
 // 2. 頁面初始化與自定義外觀載入
 // ==========================================
@@ -57,6 +77,7 @@ function handleUrlParams() {
     const mainCate = urlParams.get('main') || '飲食';
     const subCate = urlParams.get('sub') || '其他';
     const type = urlParams.get('type') || '支出';
+    const timeVal = urlParams.get('time') || getCurrentTimeString();
 
     if (isNaN(amount) || amount <= 0) return;
 
@@ -66,7 +87,6 @@ function handleUrlParams() {
     const dd = String(today.getDate()).padStart(2, '0');
     const dateVal = `${yyyy}-${mm}-${dd}`;
 
-    // 防重複機制：3 分鐘內相同金額與備註不重複寫入
     const isDuplicate = records.some(r => {
         const isSameAmount = r.amount === amount;
         const isSameNote = r.note === note;
@@ -75,7 +95,6 @@ function handleUrlParams() {
     });
 
     if (isDuplicate) {
-        console.log('🛡️ 偵測到重複發送的通知，已自動過濾。');
         window.history.replaceState({}, document.title, window.location.pathname);
         return;
     }
@@ -84,6 +103,7 @@ function handleUrlParams() {
         id: Date.now(),
         type: type,
         date: dateVal,
+        time: timeVal,
         mainCategory: mainCate,
         subCategory: subCate,
         category: subCate ? `${mainCate} > ${subCate}` : mainCate,
@@ -94,12 +114,11 @@ function handleUrlParams() {
     records.unshift(newRecord);
     saveRecords();
 
-    // 網址淨化
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 
 // ==========================================
-// 3. 側邊選單控制與外觀自定義（重點修正：針對紅圈標籤與圖例字體顏色）
+// 3. 側邊選單控制與外觀自定義
 // ==========================================
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
@@ -167,15 +186,14 @@ function applyCardStyle(rgbStr, opacity) {
     const luminance = getLuminance(r, g, b);
 
     if (luminance < 140) {
-        // 深色面板：標籤與圖例用高亮白
         document.documentElement.style.setProperty('--label-color', '#ffffff');
         document.documentElement.style.setProperty('--legend-text-color', '#ffffff');
     } else {
-        // 淺色面板：標籤與圖例改為純黑色，確保清晰可見
         document.documentElement.style.setProperty('--label-color', '#000000');
         document.documentElement.style.setProperty('--legend-text-color', '#000000');
     }
 }
+
 function resetCardColor() {
     localStorage.removeItem('accounting_card_style');
     document.getElementById('cardColorPicker').value = '#ffffff';
@@ -241,6 +259,7 @@ function addRecord() {
         id: Date.now(),
         type: currentType,
         date: date,
+        time: getCurrentTimeString(),
         mainCategory: selectedMainCate,
         subCategory: selectedSubCate,
         category: selectedSubCate ? `${selectedMainCate} > ${selectedSubCate}` : selectedMainCate,
@@ -270,7 +289,7 @@ function saveRecords() {
 }
 
 // ==========================================
-// 5. 財務數據計算與圖表繪製（含圓環圖圖例字體顏色修正）
+// 5. 財務數據計算與圖表繪製
 // ==========================================
 function updateUI() {
     renderSummary();
@@ -376,7 +395,6 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 
         const legendItem = document.createElement('div');
         legendItem.className = 'legend-item';
-        // 使用 CSS 變數控制圖例文字顏色
         legendItem.style.color = 'var(--legend-text-color, #1d1d1f)';
         legendItem.innerHTML = `
             <span class="legend-color" style="background-color: ${color};"></span>
@@ -402,7 +420,7 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 }
 
 // ==========================================
-// 6. 歷史明細渲染與篩選
+// 6. 歷史明細渲染（針對日期與時間單獨進行行內強制垂直分行）
 // ==========================================
 function renderHistory() {
     const listEl = document.getElementById('recordList');
@@ -451,12 +469,21 @@ function renderHistory() {
         const item = document.createElement('div');
         item.className = 'record-item';
         item.style.borderLeftColor = r.type === '收入' ? '#34c759' : '#ff3b30';
+        
+        const displayTime = r.time || getTimeFromTimestamp(r.id);
+
         item.innerHTML = `
-            <div>
-                <strong>${r.category}</strong> ${r.note ? `<span style="opacity:0.75; font-size:13px;">(${r.note})</span>` : ''}
-                <div class="record-date">${r.date}</div>
+            <div class="record-info">
+                <div class="record-title">
+                    <strong>${r.category}</strong> 
+                    ${r.note ? `<span style="opacity:0.75; font-size:13px; font-weight:normal;">(${r.note})</span>` : ''}
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                    <span class="record-date-text">${r.date}</span>
+                    <span class="record-date-text">${displayTime}</span>
+                </div>
             </div>
-            <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
                 <span class="record-amount ${r.type === '收入' ? 'amt-income' : 'amt-expense'}">
                     ${r.type === '收入' ? '+' : '-'}$${r.amount.toLocaleString()}
                 </span>
@@ -601,9 +628,10 @@ function exportCSV() {
         return;
     }
 
-    let csvContent = '\uFEFF日期,類型,分類,金額,備註\n';
+    let csvContent = '\uFEFF日期時間,類型,分類,金額,備註\n';
     records.forEach(r => {
-        csvContent += `"${r.date}","${r.type}","${r.category}",${r.amount},"${r.note || ''}"\n`;
+        const dt = r.time ? `${r.date} ${r.time}` : r.date;
+        csvContent += `"${dt}","${r.type}","${r.category}",${r.amount},"${r.note || ''}"\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -632,14 +660,19 @@ function importCSV() {
 
                 const cols = line.split(',').map(c => c.replace(/^"|"$/g, ''));
                 if (cols.length >= 4) {
-                    const [date, type, category, amount, note] = cols;
+                    const [dateTimeStr, type, category, amount, note] = cols;
                     const parsedAmount = parseFloat(amount);
 
-                    if (date && !isNaN(parsedAmount)) {
+                    if (dateTimeStr && !isNaN(parsedAmount)) {
+                        const dtParts = dateTimeStr.split(' ');
+                        const datePart = dtParts[0];
+                        const timePart = dtParts[1] || '';
+
                         const cateParts = category ? category.split(' > ') : ['其他'];
                         records.push({
                             id: Date.now() + i,
-                            date: date,
+                            date: datePart,
+                            time: timePart,
                             type: type || '支出',
                             mainCategory: cateParts[0],
                             subCategory: cateParts[1] || '',
