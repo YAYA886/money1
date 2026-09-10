@@ -402,7 +402,7 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 }
 
 // ==========================================
-// 6. 歷史明細渲染與篩選（僅在此處針對日期與時間做行內垂直排列）
+// 6. 歷史明細渲染與篩選
 // ==========================================
 function renderHistory() {
     const listEl = document.getElementById('recordList');
@@ -452,6 +452,7 @@ function renderHistory() {
         item.className = 'record-item';
         item.style.borderLeftColor = r.type === '收入' ? '#34c759' : '#ff3b30';
         
+        // 取得時間字串（若舊資料無 time 屬性則透過 timestamp 自動補算）
         const displayTime = r.time || getTimeFromTimestamp(r.id);
 
         item.innerHTML = `
@@ -460,6 +461,7 @@ function renderHistory() {
                     <strong>${r.category}</strong> 
                     ${r.note ? `<span style="opacity:0.75; font-size:13px; font-weight:normal;">(${r.note})</span>` : ''}
                 </div>
+                <!-- 強制 flex-direction: column 確保日期與時間分兩行 -->
                 <div style="display: flex; flex-direction: column; align-items: flex-start;">
                     <span class="record-date-text" style="font-size:12px; color:#86868b;">${r.date}</span>
                     <span class="record-date-text" style="font-size:12px; color:#86868b;">${displayTime}</span>
