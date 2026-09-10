@@ -42,6 +42,17 @@ function getCurrentTimeString() {
     return `${hh}:${mm}:${ss}`;
 }
 
+// 根據戳記 id 補算時間（用於歷史舊紀錄）
+function getTimeFromTimestamp(timestamp) {
+    if (!timestamp) return getCurrentTimeString();
+    const dateObj = new Date(timestamp);
+    if (isNaN(dateObj.getTime())) return getCurrentTimeString();
+    const hh = String(dateObj.getHours()).padStart(2, '0');
+    const mm = String(dateObj.getMinutes()).padStart(2, '0');
+    const ss = String(dateObj.getSeconds()).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+}
+
 // ==========================================
 // 2. 頁面初始化與自定義外觀載入
 // ==========================================
@@ -66,7 +77,6 @@ function handleUrlParams() {
     const mainCate = urlParams.get('main') || '飲食';
     const subCate = urlParams.get('sub') || '其他';
     const type = urlParams.get('type') || '支出';
-    // 若網址沒帶時間參數，自動抓取進入網頁（通知抵達）的時間
     const timeVal = urlParams.get('time') || getCurrentTimeString();
 
     if (isNaN(amount) || amount <= 0) return;
@@ -77,7 +87,6 @@ function handleUrlParams() {
     const dd = String(today.getDate()).padStart(2, '0');
     const dateVal = `${yyyy}-${mm}-${dd}`;
 
-    // 防重複機制：3 分鐘內相同金額與備註不重複寫入
     const isDuplicate = records.some(r => {
         const isSameAmount = r.amount === amount;
         const isSameNote = r.note === note;
@@ -86,7 +95,6 @@ function handleUrlParams() {
     });
 
     if (isDuplicate) {
-        console.log('🛡️ 偵測到重複發送的通知，已自動過濾。');
         window.history.replaceState({}, document.title, window.location.pathname);
         return;
     }
@@ -106,7 +114,6 @@ function handleUrlParams() {
     records.unshift(newRecord);
     saveRecords();
 
-    // 網址淨化
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 
@@ -413,7 +420,7 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 }
 
 // ==========================================
-// 6. 歷史明細渲染與篩選（年月日下方獨立顯示時間）
+// 6. 歷史明細渲染與篩選（強效解析時間）
 // ==========================================
 function renderHistory() {
     const listEl = document.getElementById('recordList');
@@ -463,14 +470,14 @@ function renderHistory() {
         item.className = 'record-item';
         item.style.borderLeftColor = r.type === '收入' ? '#34c759' : '#ff3b30';
         
-        // 若該筆紀錄沒有時間（舊資料），自動補上預設時間點
-        const displayTime = r.time || getCurrentTimeString();
+        // 抓取時間：若無 time 欄位，自動從建立的戳記 id 反推時間
+        const displayTime = r.time || getTimeFromTimestamp(r.id);
 
         item.innerHTML = `
             <div>
                 <strong>${r.category}</strong> ${r.note ? `<span style="opacity:0.75; font-size:13px;">(${r.note})</span>` : ''}
                 <div class="record-date">${r.date}</div>
-                <div class="record-date" style="margin-top: 2px;">${displayTime}</div>
+                <div class="record-date" style="margin-top: 2px; color: #666;">${displayTime}</div>
             </div>
             <div>
                 <span class="record-amount ${r.type === '收入' ? 'amt-income' : 'amt-expense'}">
