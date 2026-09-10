@@ -452,7 +452,7 @@ function renderHistory() {
         item.className = 'record-item';
         item.style.borderLeftColor = r.type === '收入' ? '#34c759' : '#ff3b30';
         
-        // 取得時間字串（若無 time 欄位則從 id 戳記反推 HH:mm:ss）
+        // 取得時間字串（若無 time 欄位則從 id 時間戳記反推 HH:mm:ss）
         let timeStr = r.time;
         if (!timeStr) {
             const dateObj = new Date(r.id);
@@ -481,6 +481,7 @@ function renderHistory() {
         listEl.appendChild(item);
     });
 }
+
 function setHistoryRange(range) {
     historyRange = range;
     selectedCategoryFilter = range === 'all' ? null : selectedCategoryFilter;
