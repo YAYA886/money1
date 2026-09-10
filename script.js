@@ -95,7 +95,7 @@ function handleUrlParams() {
         id: Date.now(),
         type: type,
         date: dateVal,
-        time: timeVal, // 紀錄通知時間
+        time: timeVal,
         mainCategory: mainCate,
         subCategory: subCate,
         category: subCate ? `${mainCate} > ${subCate}` : mainCate,
@@ -252,7 +252,7 @@ function addRecord() {
         id: Date.now(),
         type: currentType,
         date: date,
-        time: getCurrentTimeString(), // 手動儲存時紀錄當前時間
+        time: getCurrentTimeString(),
         mainCategory: selectedMainCate,
         subCategory: selectedSubCate,
         category: selectedSubCate ? `${selectedMainCate} > ${selectedSubCate}` : selectedMainCate,
@@ -413,7 +413,7 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 }
 
 // ==========================================
-// 6. 歷史明細渲染與篩選（新增顯示時間邏輯）
+// 6. 歷史明細渲染與篩選（年月日下方獨立顯示時間）
 // ==========================================
 function renderHistory() {
     const listEl = document.getElementById('recordList');
@@ -463,13 +463,14 @@ function renderHistory() {
         item.className = 'record-item';
         item.style.borderLeftColor = r.type === '收入' ? '#34c759' : '#ff3b30';
         
-        // 顯示日期與時間，如果歷史舊紀錄無時間則僅顯示日期
-        const displayDateTime = r.time ? `${r.date} ${r.time}` : r.date;
+        // 若該筆紀錄沒有時間（舊資料），自動補上預設時間點
+        const displayTime = r.time || getCurrentTimeString();
 
         item.innerHTML = `
             <div>
                 <strong>${r.category}</strong> ${r.note ? `<span style="opacity:0.75; font-size:13px;">(${r.note})</span>` : ''}
-                <div class="record-date">${displayDateTime}</div>
+                <div class="record-date">${r.date}</div>
+                <div class="record-date" style="margin-top: 2px;">${displayTime}</div>
             </div>
             <div>
                 <span class="record-amount ${r.type === '收入' ? 'amt-income' : 'amt-expense'}">
