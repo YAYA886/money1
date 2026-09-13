@@ -413,9 +413,8 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
     wrapper.innerHTML = svgHTML;
 }
 
-
 // ==========================================
-// 6. 歷史明細渲染與篩選（收斂時保留顯示最近 3 筆）
+// 6. 歷史明細渲染與篩選（收斂時顯示最近 3 筆）
 // ==========================================
 function renderHistory() {
     const listEl = document.getElementById('recordList');
@@ -433,6 +432,8 @@ function renderHistory() {
         };
         badgeBox.appendChild(badge);
     }
+
+    // 刪除原本的 if (isHistoryCollapsed) return; 邏輯
 
     const now = new Date();
     const curYear = now.getFullYear();
@@ -458,7 +459,7 @@ function renderHistory() {
         return;
     }
 
-    // ⭐ 重點修改：若為收斂狀態（isHistoryCollapsed 為 true），只截取前 3 筆顯示
+    // ⭐ 修改重點：如果處於收斂狀態，只裁切前 3 筆顯示；展開時顯示全部
     const displayRecords = isHistoryCollapsed ? filteredRecords.slice(0, 3) : filteredRecords;
 
     displayRecords.forEach(r => {
@@ -493,7 +494,9 @@ function renderHistory() {
         `;
         listEl.appendChild(item);
     });
-}function setHistoryRange(range) {
+}
+
+function setHistoryRange(range) {
     historyRange = range;
     selectedCategoryFilter = range === 'all' ? null : selectedCategoryFilter;
     setHistoryRangeActiveUI(range);
