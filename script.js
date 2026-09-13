@@ -413,6 +413,7 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
     wrapper.innerHTML = svgHTML;
 }
 
+
 // ==========================================
 // 6. 歷史明細渲染與篩選（收斂時保留顯示最近 3 筆）
 // ==========================================
@@ -492,7 +493,26 @@ function renderHistory() {
         `;
         listEl.appendChild(item);
     });
+}function setHistoryRange(range) {
+    historyRange = range;
+    selectedCategoryFilter = range === 'all' ? null : selectedCategoryFilter;
+    setHistoryRangeActiveUI(range);
+    renderHistory();
 }
+
+function setHistoryRangeActiveUI(range) {
+    ['month', 'year', 'all'].forEach(r => {
+        const btn = document.getElementById(`btnRange${r.charAt(0).toUpperCase() + r.slice(1)}`);
+        if (btn) btn.classList.toggle('active', r === range);
+    });
+}
+
+function toggleHistoryCollapse() {
+    isHistoryCollapsed = !isHistoryCollapsed;
+    document.getElementById('toggleCollapseBtn').innerText = isHistoryCollapsed ? '展開 ▼' : '收斂 ▲';
+    renderHistory();
+}
+
 // ==========================================
 // 7. 分類彈窗 Modal 管理
 // ==========================================
