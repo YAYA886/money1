@@ -17,7 +17,7 @@ const defaultCategories = {
         '交通': ['加油', '公車/捷運', '計程車', '停車費', '車輛保養', '高鐵/台鐵'],
         '學習': ['書籍', '課程', '文具', '報名費'],
         '娛樂': ['電影', '遊戲', '旅遊', '演唱會', '訂閱服務'],
-        '購物': ['服飾', '鞋包', '美妝保養', '電子產品']
+        '購物': ['服飾', '鞋包', '美妝保養', '電子產品'],
         '銀行通知': ['刷卡']
     },
     '收入': {
@@ -55,8 +55,11 @@ function handleUrlParams() {
     const urlParams = new URLSearchParams(window.location.search);
     const amount = parseFloat(urlParams.get('amount'));
     const note = urlParams.get('note') || '';
-    const mainCate = urlParams.get('main') || '銀行通知';
-    const subCate = urlParams.get('sub') || '刷卡';
+    
+    // 優先抓取傳進來的 app 名稱，若無則預設為 '銀行通知'
+    const appName = urlParams.get('app') || urlParams.get('main') || '銀行通知';
+    const mainCate = '銀行通知';
+    const subCate = appName; // 將銀行/APP名稱直接作為子分類（例如：銀行通知 > 國泰世華）
     const type = urlParams.get('type') || '支出';
 
     if (isNaN(amount) || amount <= 0) return;
@@ -81,13 +84,22 @@ function handleUrlParams() {
         return;
     }
 
+    // 自動把新的銀行/APP分類加入預設分類表中
+    if (!categories['支出']['銀行通知']) {
+        categories['支出']['銀行通知'] = [];
+    }
+    if (!categories['支出']['銀行通知'].includes(subCate)) {
+        categories['支出']['銀行通知'].push(subCate);
+        localStorage.setItem('accounting_categories', JSON.stringify(categories));
+    }
+
     const newRecord = {
         id: Date.now(),
         type: type,
         date: dateVal,
         mainCategory: mainCate,
         subCategory: subCate,
-        category: subCate ? `${mainCate} > ${subCate}` : mainCate,
+        category: `${mainCate} > ${subCate}`,
         amount: amount,
         note: note
     };
@@ -98,7 +110,6 @@ function handleUrlParams() {
     // 網址淨化
     window.history.replaceState({}, document.title, window.location.pathname);
 }
-
 // ==========================================
 // 3. 側邊選單控制與外觀自定義（重點修正：針對紅圈標籤與圖例字體顏色）
 // ==========================================
