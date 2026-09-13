@@ -18,6 +18,7 @@ const defaultCategories = {
         '學習': ['書籍', '課程', '文具', '報名費'],
         '娛樂': ['電影', '遊戲', '旅遊', '演唱會', '訂閱服務'],
         '購物': ['服飾', '鞋包', '美妝保養', '電子產品']
+        '銀行通知': ['刷卡']
     },
     '收入': {
         '工作': ['薪資', '獎金', '兼職'],
@@ -54,8 +55,8 @@ function handleUrlParams() {
     const urlParams = new URLSearchParams(window.location.search);
     const amount = parseFloat(urlParams.get('amount'));
     const note = urlParams.get('note') || '';
-    const mainCate = urlParams.get('main') || '飲食';
-    const subCate = urlParams.get('sub') || '其他';
+    const mainCate = urlParams.get('main') || '銀行通知';
+    const subCate = urlParams.get('sub') || '刷卡';
     const type = urlParams.get('type') || '支出';
 
     if (isNaN(amount) || amount <= 0) return;
