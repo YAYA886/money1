@@ -414,7 +414,7 @@ function drawDonutChart(wrapperId, legendId, dataMap, rangeType) {
 }
 
 // ==========================================
-// 6. 歷史明細渲染與篩選
+// 6. 歷史明細渲染與篩選（收斂時保留顯示最近 3 筆）
 // ==========================================
 function renderHistory() {
     const listEl = document.getElementById('recordList');
@@ -432,8 +432,6 @@ function renderHistory() {
         };
         badgeBox.appendChild(badge);
     }
-
-    if (isHistoryCollapsed) return;
 
     const now = new Date();
     const curYear = now.getFullYear();
@@ -459,12 +457,14 @@ function renderHistory() {
         return;
     }
 
-    filteredRecords.forEach(r => {
+    // ⭐ 重點修改：若為收斂狀態（isHistoryCollapsed 為 true），只截取前 3 筆顯示
+    const displayRecords = isHistoryCollapsed ? filteredRecords.slice(0, 3) : filteredRecords;
+
+    displayRecords.forEach(r => {
         const item = document.createElement('div');
         item.className = 'record-item';
         item.style.borderLeftColor = r.type === '收入' ? '#34c759' : '#ff3b30';
         
-        // 取得時間字串（若無 time 欄位則從 id 時間戳記反推 HH:mm:ss）
         let timeStr = r.time;
         if (!timeStr) {
             const dateObj = new Date(r.id);
@@ -493,27 +493,6 @@ function renderHistory() {
         listEl.appendChild(item);
     });
 }
-
-function setHistoryRange(range) {
-    historyRange = range;
-    selectedCategoryFilter = range === 'all' ? null : selectedCategoryFilter;
-    setHistoryRangeActiveUI(range);
-    renderHistory();
-}
-
-function setHistoryRangeActiveUI(range) {
-    ['month', 'year', 'all'].forEach(r => {
-        const btn = document.getElementById(`btnRange${r.charAt(0).toUpperCase() + r.slice(1)}`);
-        if (btn) btn.classList.toggle('active', r === range);
-    });
-}
-
-function toggleHistoryCollapse() {
-    isHistoryCollapsed = !isHistoryCollapsed;
-    document.getElementById('toggleCollapseBtn').innerText = isHistoryCollapsed ? '展開 ▼' : '收斂 ▲';
-    renderHistory();
-}
-
 // ==========================================
 // 7. 分類彈窗 Modal 管理
 // ==========================================
