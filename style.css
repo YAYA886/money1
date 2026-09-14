@@ -426,7 +426,7 @@ body {
     border-left: 4px solid var(--primary-color);
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 8px;
-    background-color: #757575;
+    background-color:rgba(117, 117, 117, 0.5);
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
