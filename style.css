@@ -427,11 +427,7 @@ body {
 
     /* 新增：文字黑色 + 白色描邊 */
     color: #000000;
-    text-shadow: 
-        -1px -1px 0 #ffffff,  
-         1px -1px 0 #ffffff,
-        -1px  1px 0 #ffffff,
-         1px  1px 0 #ffffff;
+   -webkit-text-stroke: 1px #ffffff;
 }
 
 .record-date {
