@@ -181,6 +181,7 @@ function applyCardStyle(rgbStr, opacity) {
     if (luminance < 40) {
         // 深色面板：標籤與圖例用高亮白
         document.documentElement.style.setProperty('--label-color', '#ffffff');
+        document.documentElement.style.setProperty('--label-stroke', '1px #000000');
         document.documentElement.style.setProperty('--legend-text-color', '#ffffff');
     } else {
         // 淺色面板：標籤與圖例改為純黑色，確保清晰可見

@@ -594,4 +594,5 @@ label,
 .card p:not([id*="dash"]):not([id*="Dash"]),
 .card span:not([id*="dash"]):not([id*="Dash"]) {
     color: var(--label-color, #000000) !important;
+    -webkit-text-stroke: var(--label-stroke, 0px transparent) !important;
 }
