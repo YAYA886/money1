@@ -178,16 +178,16 @@ function applyCardStyle(rgbStr, opacity) {
     const [r, g, b] = rgbStr.split(',').map(n => parseInt(n.trim()));
     const luminance = getLuminance(r, g, b);
 
-    if (luminance < 40) {
+    if (luminance < 60) {
         // 深色面板：標籤與圖例用高亮白
         document.documentElement.style.setProperty('--label-color', '#ffffff');
         document.documentElement.style.setProperty('--label-stroke', '0px #000000');
         document.documentElement.style.setProperty('--legend-text-color', '#ffffff');
     } else {
         // 淺色面板：標籤與圖例改為純黑色，確保清晰可見
-        document.documentElement.style.setProperty('--label-color', '#ffffff');
+        document.documentElement.style.setProperty('--label-color', '#000000');
         document.documentElement.style.setProperty('--label-stroke', '0px transparent');
-        document.documentElement.style.setProperty('--legend-text-color', '#ffffff');
+        document.documentElement.style.setProperty('--legend-text-color', '#000000');
     }
 }
 function resetCardColor() {
