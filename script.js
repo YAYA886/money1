@@ -178,7 +178,7 @@ function applyCardStyle(rgbStr, opacity) {
     const [r, g, b] = rgbStr.split(',').map(n => parseInt(n.trim()));
     const luminance = getLuminance(r, g, b);
 
-    if (luminance < 140) {
+    if (luminance < 40) {
         // 深色面板：標籤與圖例用高亮白
         document.documentElement.style.setProperty('--label-color', '#ffffff');
         document.documentElement.style.setProperty('--legend-text-color', '#ffffff');

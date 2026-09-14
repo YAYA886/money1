@@ -562,21 +562,36 @@ body {
     font-size: 18px;
     font-weight: 900;
 }
-/* 設定文字為黑色，並加上白色 1px 外框 */
+* 1. 確保全區 label 與標題套用動態變數 */
+label, 
+.card h2, 
+.card h3, 
+.card-title {
+    color: var(--label-color, #86868b) !important;
+}
+
+/* 2. 強制把財務總覽區塊「非右側金額」的左側文字全部轉為動態變數顏色 */
+.card div:not([id*="dash"]):not([id*="Dash"]),
+.card p:not([id*="dash"]):not([id*="Dash"]),
+.card span:not([id*="dash"]):not([id*="Dash"]) {
+    color: var(--label-color, #86868b);
+}
+/* 精準對應標籤、卡片標題與總覽左側項目名稱 */
+label, 
+.card h2, 
+.card h3, 
+.dashboard-title, 
+.dash-item, 
+.dash-row span:first-child, 
+.dash-label {
+    color: var(--label-color, #86868b) !important;
+}
 label, 
 .card h2, 
 .card h3, 
 .card-title,
-.card-title-center,
-.history-header h3,
-.dashboard-title, 
-.dash-item, 
-.dash-row span:first-child, 
-.dash-label,
 .card div:not([id*="dash"]):not([id*="Dash"]),
 .card p:not([id*="dash"]):not([id*="Dash"]),
 .card span:not([id*="dash"]):not([id*="Dash"]) {
-    color: #000000 !important;
-    -webkit-text-stroke: 1px #ffffff;
-    paint-order: stroke fill;
+    color: var(--label-color, #000000) !important;
 }
