@@ -424,13 +424,21 @@ body {
     margin-bottom: 8px;
     background-color: rgba(255, 255, 255, 0.8);
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+
+    /* 新增：文字黑色 + 白色描邊 */
+    color: #000000;
+    text-shadow: 
+        -1px -1px 0 #ffffff,  
+         1px -1px 0 #ffffff,
+        -1px  1px 0 #ffffff,
+         1px  1px 0 #ffffff;
 }
 
 .record-date {
     font-size: 12px;
-    color: var(--text-secondary);
+    /* 修改：覆蓋原有的次級文字顏色，確保日期時間也是黑色 */
+    color: #000000;
 }
-
 .record-amount {
     font-size: 15px;
     font-weight: 700;
