@@ -313,13 +313,23 @@ function renderSummary() {
         }
     });
 
-    document.getElementById('dashMonthIncome').innerText = `$${mInc.toLocaleString()}`;
+   document.getElementById('dashMonthIncome').innerText = `$${mInc.toLocaleString()}`;
     document.getElementById('dashMonthExpense').innerText = `$${mExp.toLocaleString()}`;
-    document.getElementById('dashMonthBalance').innerText = `$${(mInc - mExp).toLocaleString()}`;
+
+    // 當月結餘判斷：正數或0套用綠色 (amt-income)，負數套用紅色 (amt-expense)
+    const mBalance = mInc - mExp;
+    const mBalEl = document.getElementById('dashMonthBalance');
+    mBalEl.innerText = `$${mBalance.toLocaleString()}`;
+    mBalEl.className = mBalance >= 0 ? 'amt-income' : 'amt-expense';
 
     document.getElementById('dashYearIncome').innerText = `$${yInc.toLocaleString()}`;
     document.getElementById('dashYearExpense').innerText = `$${yExp.toLocaleString()}`;
-    document.getElementById('dashYearBalance').innerText = `$${(yInc - yExp).toLocaleString()}`;
+
+    // 當年結餘判斷：正數或0套用綠色 (amt-income)，負數套用紅色 (amt-expense)
+    const yBalance = yInc - yExp;
+    const yBalEl = document.getElementById('dashYearBalance');
+    yBalEl.innerText = `$${yBalance.toLocaleString()}`;
+    yBalEl.className = yBalance >= 0 ? 'amt-income' : 'amt-expense';
 }
 
 function renderCharts() {
