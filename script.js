@@ -437,6 +437,7 @@ function renderHistory() {
     if (selectedCategoryFilter) {
         const badge = document.createElement('div');
         badge.className = 'filter-badge';
+        badge.style.color = '#F08080';
         badge.innerHTML = `篩選分類: ${selectedCategoryFilter} (點擊取消) ✕`;
         badge.onclick = () => {
             selectedCategoryFilter = null;

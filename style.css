@@ -368,7 +368,7 @@ body {
 .btn-toggle {
     background: none;
     border: none;
-    color: var(--primary-color);
+    color: #81D8D0;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -446,7 +446,7 @@ body {
 .btn-delete {
     background: none;
     border: none;
-    color: var(--expense-color);
+    color: #F08080;
     font-size: 12px;
     cursor: pointer;
     padding: 4px 8px;
