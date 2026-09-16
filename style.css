@@ -16,11 +16,20 @@
     --shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
+/* 載入本地端的 .ttf 離線粉圓體 */
+@font-face {
+    font-family: 'MyRoundedFont';
+    src: url('./jf-openhuninn-2.1.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: "華康圓體", "Yuanti SC", "YouYuan", sans-serif;
+    font-family: 'MyRoundedFont', "Noto Sans CJK TC", "Noto Sans TC", sans-serif;
     -webkit-tap-highlight-color: transparent;
 }
 
