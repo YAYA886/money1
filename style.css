@@ -421,6 +421,7 @@ body {
 .record-item {
     display: flex;
     justify-content: space-between;
+    align-items: flex-start; /* 改為頂端對齊，避免文字換行時右側按鈕位移 */
     align-items: center;
     padding: 12px;
     border-left: 4px solid var(--primary-color);
@@ -450,6 +451,15 @@ body {
     font-size: 12px;
     cursor: pointer;
     padding: 4px 8px;
+}
+
+.btn-edit {
+    background: none;
+    border: none;
+    color: #81D8D0;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 8px;
 }
 
 .modal-overlay {

@@ -437,7 +437,7 @@ function renderHistory() {
     if (selectedCategoryFilter) {
         const badge = document.createElement('div');
         badge.className = 'filter-badge';
-        badge.style.color = '#F08080';
+        badge.style.setProperty('color', '#F08080', 'important');
         badge.innerHTML = `篩選分類: ${selectedCategoryFilter} (點擊取消) ✕`;
         badge.onclick = () => {
             selectedCategoryFilter = null;
@@ -498,11 +498,12 @@ function renderHistory() {
                 <strong>${r.category}</strong> ${r.note ? `<span style="opacity:0.75; font-size:13px;">(${r.note})</span>` : ''}
                 <div class="record-date">${r.date}${timeStr ? `<br>${timeStr}` : ''}</div>
             </div>
-            <div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
                 <span class="record-amount ${r.type === '收入' ? 'amt-income' : 'amt-expense'}">
                     ${r.type === '收入' ? '+' : '-'}$${r.amount.toLocaleString()}
                 </span>
                 <button class="btn-delete" onclick="deleteRecord(${r.id})">刪除</button>
+                <button class="btn-edit" onclick="editRecord(${r.id})">編輯</button>
             </div>
         `;
         listEl.appendChild(item);
@@ -702,4 +703,35 @@ function importCSV() {
         reader.readAsText(file, 'UTF-8');
     };
     input.click();
+}
+
+// ==========================================
+// 9. 編輯歷史紀錄（修改分類與備註）
+// ==========================================
+function editRecord(id) {
+    const record = records.find(r => r.id === id);
+    if (!record) return;
+
+    // 1. 修改備註
+    const newNote = prompt('修改備註（留空代表無備註）：', record.note || '');
+    if (newNote === null) return; // 使用者按取消
+
+    // 2. 修改分類
+    const currentCategory = record.category;
+    const newCategory = prompt('修改分類格式（例：飲食 > 午餐）：', currentCategory);
+    if (newCategory === null) return; // 使用者按取消
+
+    const trimmedCate = newCategory.trim();
+    if (trimmedCate !== '') {
+        const cateParts = trimmedCate.split(' > ');
+        record.mainCategory = cateParts[0];
+        record.subCategory = cateParts[1] || '';
+        record.category = trimmedCate;
+    }
+
+    record.note = newNote.trim();
+
+    // 儲存並更新介面
+    saveRecords();
+    updateUI();
 }
