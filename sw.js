@@ -1,10 +1,11 @@
-const CACHE_NAME = 'money-db-v29';
+const CACHE_NAME = 'money-db-v30';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './script.js',
-    './manifest.json'
+    './manifest.json',
+    './jf-openhuninn-2.1.ttf'
 ];
 
 // 安裝並快取所有核心檔案
