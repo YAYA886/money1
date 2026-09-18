@@ -8,7 +8,7 @@ let selectedSubCate = '食材';
 let historyRange = 'month';
 let selectedCategoryFilter = null;
 let isHistoryCollapsed = false;
-let editingRecordId = null;
+let editingIndex = null;
 
 const defaultCategories = {
     '支出': {
@@ -540,7 +540,11 @@ function openModal() {
 }
 
 function closeModal() {
-    document.getElementById('cateModal').style.display = 'none';
+    const modal = document.getElementById('cateModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.dataset.isEditing = 'false';
+    }
 }
 
 function renderModalCategories() {
@@ -577,29 +581,19 @@ function renderModalCategories() {
         nameSpan.style.flex = '1';
         nameSpan.onclick = () => {
             selectedSubCate = subCate;
-            updateCateTriggerText();
-            closeModal();
+            const modal = document.getElementById('cateModal');
 
-            // ⭐ 若是在「編輯紀錄」的狀態下，選完分類後接著跳出備註編輯
-            if (editingRecordId !== null) {
-                const record = records.find(r => r.id === editingRecordId);
-                if (record) {
-                    record.mainCategory = selectedMainCate;
-                    record.subCategory = selectedSubCate;
-                    record.category = selectedSubCate ? `${selectedMainCate} > ${selectedSubCate}` : selectedMainCate;
-
-                    // 延遲跳出 prompt 備註框（避免 UI 衝突）
-                    setTimeout(() => {
-                        const newNote = prompt('修改備註（留空代表無備註）：', record.note || '');
-                        if (newNote !== null) {
-                            record.note = newNote.trim();
-                        }
-                        
-                        editingRecordId = null; // 重置狀態
-                        saveRecords();
-                        updateUI();
-                    }, 150);
-                }
+            if (modal && modal.dataset.isEditing === 'true') {
+                // ---- 情況 A：來自歷史紀錄編輯 ----
+                modal.dataset.isEditing = 'false';
+                
+                // ⭐ 先觸發編輯處理，後關閉 Modal
+                onCategorySelectedForEdit(selectedMainCate, subCate);
+                closeModal();
+            } else {
+                // ---- 情況 B：來自上方新增紀錄選單 ----
+                updateCateTriggerText();
+                closeModal();
             }
         };
 
@@ -735,26 +729,46 @@ function editRecord(id) {
     const record = records.find(r => r.id === id);
     if (!record) return;
 
-    // 1. 修改備註
-    const newNote = prompt('修改備註（留空代表無備註）：', record.note || '');
-    if (newNote === null) return; // 使用者按取消
+    // 記錄目前正在編輯的紀錄 ID
+    editingIndex = id;
 
-    // 2. 修改分類
-    const currentCategory = record.category;
-    const newCategory = prompt('修改分類格式（例：飲食 > 午餐）：', currentCategory);
-    if (newCategory === null) return; // 使用者按取消
+    // 自動切換 Modal 呈現對應的收入/支出分類
+    currentType = record.type;
+    document.getElementById('typeExpenseBtn').classList.toggle('active', currentType === '支出');
+    document.getElementById('typeIncomeBtn').classList.toggle('active', currentType === '收入');
 
-    const trimmedCate = newCategory.trim();
-    if (trimmedCate !== '') {
-        const cateParts = trimmedCate.split(' > ');
-        record.mainCategory = cateParts[0];
-        record.subCategory = cateParts[1] || '';
-        record.category = trimmedCate;
+    // 帶入該紀錄原本的主分類與子分類
+    selectedMainCate = record.mainCategory || Object.keys(categories[currentType])[0];
+    selectedSubCate = record.subCategory || '';
+
+    // 標記 Modal 為編輯狀態並開啟
+    const modal = document.getElementById('cateModal');
+    if (modal) {
+        modal.dataset.isEditing = 'true';
+    }
+    openModal();
+}
+
+// 新增：選擇完分類後處理備註與儲存的 Callback
+function onCategorySelectedForEdit(mainCate, subCate) {
+    if (!editingIndex) return;
+
+    const record = records.find(r => r.id === editingIndex);
+    if (!record) return;
+
+    // 更新分類
+    record.mainCategory = mainCate;
+    record.subCategory = subCate;
+    record.category = subCate ? `${mainCate} > ${subCate}` : mainCate;
+
+    // 跳出修改備註 prompt
+    const newNote = prompt('請輸入新的備註（留空代表無備註）：', record.note || '');
+    if (newNote !== null) {
+        record.note = newNote.trim();
     }
 
-    record.note = newNote.trim();
-
-    // 儲存並更新介面
+    // 重置編輯狀態並儲存更新
+    editingIndex = null;
     saveRecords();
     updateUI();
 }
