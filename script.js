@@ -8,6 +8,7 @@ let selectedSubCate = '食材';
 let historyRange = 'month';
 let selectedCategoryFilter = null;
 let isHistoryCollapsed = false;
+let editingRecordId = null;
 
 const defaultCategories = {
     '支出': {
@@ -578,6 +579,28 @@ function renderModalCategories() {
             selectedSubCate = subCate;
             updateCateTriggerText();
             closeModal();
+
+            // ⭐ 若是在「編輯紀錄」的狀態下，選完分類後接著跳出備註編輯
+            if (editingRecordId !== null) {
+                const record = records.find(r => r.id === editingRecordId);
+                if (record) {
+                    record.mainCategory = selectedMainCate;
+                    record.subCategory = selectedSubCate;
+                    record.category = selectedSubCate ? `${selectedMainCate} > ${selectedSubCate}` : selectedMainCate;
+
+                    // 延遲跳出 prompt 備註框（避免 UI 衝突）
+                    setTimeout(() => {
+                        const newNote = prompt('修改備註（留空代表無備註）：', record.note || '');
+                        if (newNote !== null) {
+                            record.note = newNote.trim();
+                        }
+                        
+                        editingRecordId = null; // 重置狀態
+                        saveRecords();
+                        updateUI();
+                    }, 150);
+                }
+            }
         };
 
         const delBtn = document.createElement('button');
